@@ -1,0 +1,10 @@
+version: "2"
+
+linters:
+  default: all
+  disable:
+    - depguard
+    - godox
+  exclusions:
+    paths:
+      - cmd/request_logger/*

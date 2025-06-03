@@ -1,12 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.0/.schema/devbox.schema.json",
-  "packages": [
-    "go@latest",
-    "watchexec@latest"
-  ],
+  "packages": ["go@latest", "watchexec@latest", "golangci-lint@latest"],
   "shell": {
     "scripts": {
-      "request-logger": ["go run cmd/request_logger/main.go"]
+      "request-logger": ["go run cmd/request_logger/main.go"],
+      "lint": "golangci-lint run",
+      "lint:fix": "golangci-lint run --fix",
+      "format": "golangci-lint fmt"
     }
   }
 }

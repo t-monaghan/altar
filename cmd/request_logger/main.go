@@ -18,6 +18,7 @@ func requestLoggerHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Printf("Error reading body: %v\n", err)
 		http.Error(w, "Error reading request body", http.StatusInternalServerError)
+
 		return
 	}
 
