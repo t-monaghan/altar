@@ -2,55 +2,69 @@
 
 ## Summary
 
-Altar is a framework that allows developers to create custom Applications for the Awtrix platform. It's aim is to provide a simple and intuitive manner to stand up a server that can fetch data from various sources and display it on Awtrix supported devices.
+Altar is a framework that allows developers to create custom Applications for the Awtrix platform. It's aim is to provide a simple and intuitive manner to stand up a broker that can fetch data from various sources and display it on Awtrix supported devices.
 
-## Getting Started
+### See it in action
+
+You don't need an awtrix device to see this run. To have a look at what's going on you just need [devbox](https://www.jetify.com/devbox/). After installing devbox simply run `devbox services up` and you can see the requests from the example application hitting the request-debugger process.
+
+## Using the library
+
+### Getting Started
 
 First define an Application:
 
-```go
+```go filename="hello.go"
 // for brevity we're defining the application in main
 // defining applications in a seperate package is recommended
 package main
 
-import (
-	"github.com/t-monaghan/altar"
-)
+import "github.com/t-monaghan/altar/application"
 
 func helloWorldFetcher() (string, error) {
 	return "Hello, World!", nil
 }
 
-var HelloWorld = altar.Application{
-	Name:        "Hello World",
-	Fetcher:     helloWorldFetcher,
-}
+var HelloWorld = application.NewApplication("Hello World", helloWorldFetcher)
 ```
 
-Then define the main function, starting the server with a list including this application:
+Then define the main function, starting the broker with a list including this application:
 
-```go
+```go filename="main.go"
 package main
 
 import (
-	"github.com/t-monaghan/altar"
+	"fmt"
+	"net"
+	"os"
+
+	"github.com/t-monaghan/altar/application"
+	"github.com/t-monaghan/altar/broker"
 )
 
 func main() {
-	appList := []altar.Application{HelloWorld}
-	server := altar.NewServer()
-	server.Start(appList)
+	appList := []*application.Application{HelloWorld}
+	broker, err := broker.NewBroker(net.ParseIP("YOUR_AWTRIX_IP_HERE"), appList)
+	if err != nil {
+		fmt.Printf("error instantiating new broker: %v", err)
+		os.Exit(1)
+	}
+	err = broker.Start()
+	if err != nil {
+		fmt.Printf("broker encountered an error during runtime: %v", err)
+		os.Exit(1)
+	}
 }
 ```
 
-Finally, build and run the server:
+Finally, build and run the broker:
 
 ```sh
 go build
 ./altar
 ```
 
-The server will handle pulling down and standing up the new custom applications, however I am planning to develop a launcher that will handle the rollover of new server builds.
+The broker will handle pulling down and standing up the new custom applications, however new applications require manually shutting the broker down and starting the new build. I am planning to develop a launcher that will handle the rollover of new broker builds.
 
 ## Contributing
 
