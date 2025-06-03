@@ -2,7 +2,7 @@
 
 ## Summary
 
-Altar is a framework that allows developers to create custom Applications for the Awtrix platform. It's aim is to provide a simple and intuitive manner to stand up a broker that can fetch data from various sources and display it on Awtrix supported devices.
+Altar is a framework that allows developers to create custom Applications for the [Awtrix](https://blueforcer.github.io/awtrix3/#/) platform. It's aim is to provide a simple and intuitive manner to stand up a broker that can fetch data from various sources and display it on Awtrix supported devices.
 
 ### See it in action
 
