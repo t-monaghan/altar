@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.0/.schema/devbox.schema.json",
+  "packages": [
+    "go@latest",
+    "watchexec@latest"
+  ],
+  "shell": {
+    "scripts": {
+      "request-logger": ["go run cmd/request_logger/main.go"]
+    }
+  }
+}

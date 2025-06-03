@@ -1,0 +1,9 @@
+version: "0.5"
+is_strict: true
+
+processes:
+  altar:
+    command: watchexec --exts go --restart go run .
+
+  request-debugger:
+    command: devbox run request-logger
