@@ -16,7 +16,7 @@ First define an Application:
 
 ```go filename="hello.go"
 // for brevity we're defining the application in main
-// defining applications in a seperate package is recommended
+// defining applications in a separate package is recommended
 package main
 
 import "github.com/t-monaghan/altar/application"
