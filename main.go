@@ -34,5 +34,6 @@ func main() {
 		slog.Error("broker encountered an error during runtime", "error", err)
 		os.Exit(1)
 	}
-	// TODO: have a server spawn and listen to "/kill" to allow rolling a new broker build
 }
+
+// TODO: have a server spawn and listen to "/kill" to allow rolling a new broker build
