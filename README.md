@@ -60,11 +60,10 @@ func main() {
 }
 ```
 
-Finally, build and run the broker:
+Finally, run the broker:
 
 ```sh
-go build
-./altar
+go run .
 ```
 
 The broker will handle pulling down and standing up the new custom applications, however new applications require manually shutting the broker down and starting the new build. I am planning to develop a launcher that will handle the rollover of new broker builds.
