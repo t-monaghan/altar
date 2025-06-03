@@ -21,7 +21,7 @@ func helloWorldFetcher() (string, error) {
 	return "Hello, World!", nil
 }
 
-var HelloWorld = Application{
+var HelloWorld = altar.Application{
 	Name:        "Hello World",
 	Fetcher:     helloWorldFetcher,
 }
@@ -37,7 +37,8 @@ import (
 )
 
 func main() {
-	appList := []Application{HelloWorld}
+	appList := []altar.Application{HelloWorld}
+	server := altar.NewServer()
 	server.Start(appList)
 }
 ```
