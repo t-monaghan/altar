@@ -6,7 +6,7 @@ Altar is a framework that allows developers to create custom Applications for th
 
 ### See it in action
 
-You don't need an awtrix device to see this run. To have a look at what's going on you just need [devbox](https://www.jetify.com/devbox/). After installing devbox simply run `devbox services up` and you can see the requests from the example application hitting the request-debugger process.
+You don't need an awtrix device to see this run. To have a look at what's going on you just need [devbox](https://www.jetify.com/devbox/). After installing devbox simply run `devbox services up` in this project and you can see the requests from the example application hitting the request-debugger process.
 
 ## Using the library
 
