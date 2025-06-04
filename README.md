@@ -1,3 +1,5 @@
+![Curved altar from the video game Runescape](img/banner.png)
+
 # **A**wtrix **L**istens **T**o **A**ltar **R**equests
 
 > [!WARNING]
