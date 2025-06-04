@@ -5,6 +5,7 @@ linters:
   disable:
     - depguard
     - godox
+    - exhaustruct
   exclusions:
     paths:
       - cmd/request_logger/*

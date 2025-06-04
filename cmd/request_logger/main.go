@@ -39,6 +39,8 @@ func requestLoggerHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("-----------------------------------")
 
+	// TODO: log the query paramaters
+
 	// Send a simple response
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Request logged successfully"))
