@@ -21,32 +21,43 @@ import (
 	"github.com/t-monaghan/altar/application"
 )
 
-const minLoopTime = 5 * time.Second
+// MinLoopTime is the minimum time the broker will spend between iterations of fetching and pushing updates.
+const MinLoopTime = 5 * time.Second
 const httpTimeout = 10 * time.Second
 const idleTimeout = 120 * time.Second
-const adminPort = "25827"
+
+// AdminPort is the port the broker listens on for commands.
+const AdminPort = "25827"
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
 	applications []*application.Application
 	clockAddress string
-	client       *http.Client
+	Client       *http.Client
 	Debug        bool
 }
 
-// ErrBrokerHasNoApplicationsError occurs when an Altar Broker is instantiated with no applications.
-var ErrBrokerHasNoApplicationsError = errors.New("failed to start broker: no applications were provided")
+// ErrBrokerHasNoApplications occurs when an Altar Broker is instantiated with no applications.
+var ErrBrokerHasNoApplications = errors.New("failed to initialise broker: no applications were provided")
+
+// ErrIPNotValid occurs when an Altar Broker is instantiated with an invalid IP address.
+var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not valid")
 
 // NewBroker instantiates a new Altar broker.
-func NewBroker(clockIP net.IP, applications []*application.Application) (*HTTPBroker, error) {
+func NewBroker(ip string, applications []*application.Application) (*HTTPBroker, error) {
 	if len(applications) == 0 {
-		return nil, ErrBrokerHasNoApplicationsError
+		return nil, ErrBrokerHasNoApplications
+	}
+
+	clockIP := net.ParseIP(ip)
+	if clockIP == nil {
+		return nil, ErrIPNotValid
 	}
 
 	return &HTTPBroker{
 		clockAddress: fmt.Sprintf("http://%v", clockIP),
 		applications: applications,
-		client:       &http.Client{Timeout: httpTimeout},
+		Client:       &http.Client{Timeout: httpTimeout},
 		Debug:        false,
 	}, nil
 }
@@ -72,8 +83,8 @@ func (b *HTTPBroker) Start() {
 			}
 
 			duration := time.Since(startTime)
-			if duration < minLoopTime {
-				time.Sleep(minLoopTime - duration)
+			if duration < MinLoopTime {
+				time.Sleep(MinLoopTime - duration)
 			}
 		}
 	}()
@@ -82,7 +93,7 @@ func (b *HTTPBroker) Start() {
 	mux.HandleFunc("/shutdown", shutdownHandler)
 
 	adminServer := &http.Server{
-		Addr:         ":" + adminPort,
+		Addr:         ":" + AdminPort,
 		Handler:      mux,
 		ReadTimeout:  httpTimeout,
 		WriteTimeout: httpTimeout,
@@ -114,7 +125,7 @@ func (b *HTTPBroker) push(app *application.Application) error {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := b.client.Do(req)
+	resp, err := b.Client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to perform post request for %v: %w", app.Name, err)
 	}
@@ -129,6 +140,7 @@ func (b *HTTPBroker) push(app *application.Application) error {
 	return err
 }
 
+// TODO: have one general handler listen to four letter/worded commands.
 func shutdownHandler(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -142,7 +154,7 @@ func shutdownHandler(w http.ResponseWriter, req *http.Request) {
 		slog.Error("error in shutdown handler", "error", err)
 	}
 
-	if string(body) == "confirm" {
+	if string(body) == "confirm" && req.Method == http.MethodPost {
 		slog.Info("shutdown request received - shutting down")
 		os.Exit(1)
 	}
