@@ -5,5 +5,5 @@ processes:
   altar:
     command: watchexec --exts go --restart go run .
 
-  request-debugger:
+  request-logger:
     command: devbox run request-logger

@@ -9,18 +9,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/t-monaghan/altar/application"
 )
 
-const loopSeconds = 5
-
-const httpTimeoutSeconds = 10
+const minLoopTime = 5 * time.Second
+const httpTimeout = 10 * time.Second
+const idleTimeout = 120 * time.Second
+const adminPort = "25827"
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
@@ -42,36 +46,50 @@ func NewBroker(clockIP net.IP, applications []*application.Application) (*HTTPBr
 	return &HTTPBroker{
 		clockAddress: fmt.Sprintf("http://%v", clockIP),
 		applications: applications,
-		client:       &http.Client{Timeout: httpTimeoutSeconds * time.Second, Transport: nil, CheckRedirect: nil, Jar: nil},
+		client:       &http.Client{Timeout: httpTimeout},
 		Debug:        false,
 	}, nil
 }
 
 // Start executes the broker's routine.
-func (b *HTTPBroker) Start() error {
-	// TODO: how can this loop run whilst also providing endpoints?
-	// e.g. it would be useful to serve a /kill api for rollovers
-	// Have the while loop in a goroutine, and spin the server up after
-	// BUT ensure this is the only required call from the user
-	for {
-		// Fetch
-		for _, app := range b.applications {
-			err := app.Fetch()
-			if err != nil {
-				slog.Error("error fetching %v: %v", app.Name, err)
+func (b *HTTPBroker) Start() {
+	go func() {
+		for {
+			startTime := time.Now()
+
+			for _, app := range b.applications {
+				err := app.Fetch()
+				if err != nil {
+					slog.Error("error fetching %v: %v", app.Name, err)
+				}
+			}
+
+			for _, app := range b.applications {
+				err := b.push(app)
+				if err != nil {
+					slog.Error("error pushing %v: %v", app.Name, err)
+				}
+			}
+
+			duration := time.Since(startTime)
+			if duration < minLoopTime {
+				time.Sleep(minLoopTime - duration)
 			}
 		}
-		// Push
-		for _, app := range b.applications {
-			err := b.push(app)
-			if err != nil {
-				slog.Error("error pushing %v: %v", app.Name, err)
-			}
-		}
-		// TODO: only sleep if time is less than a configured amount
-		// as in, allow setting a min loop time
-		time.Sleep(loopSeconds * time.Second)
+	}()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/shutdown", shutdownHandler)
+
+	adminServer := &http.Server{
+		Addr:         ":" + adminPort,
+		Handler:      mux,
+		ReadTimeout:  httpTimeout,
+		WriteTimeout: httpTimeout,
+		IdleTimeout:  idleTimeout,
 	}
+
+	log.Fatal(adminServer.ListenAndServe())
 }
 
 func (b *HTTPBroker) push(app *application.Application) error {
@@ -109,4 +127,23 @@ func (b *HTTPBroker) push(app *application.Application) error {
 	}()
 
 	return err
+}
+
+func shutdownHandler(w http.ResponseWriter, req *http.Request) {
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusInternalServerError)
+
+		return
+	}
+
+	err = req.Body.Close()
+	if err != nil {
+		slog.Error("error in shutdown handler", "error", err)
+	}
+
+	if string(body) == "confirm" {
+		slog.Info("shutdown request received - shutting down")
+		os.Exit(1)
+	}
 }
