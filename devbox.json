@@ -3,12 +3,13 @@
   "packages": ["go@1.24.3", "watchexec@latest", "golangci-lint@2.1"],
   "shell": {
     "scripts": {
-      "request-logger": ["go run cmd/request_logger/main.go"],
+      "request-logger": "go run cmd/request_logger/main.go",
       "test": "go test ./...",
       "test:watch": "watchexec --exts go --restart go test ./...",
       "lint": "golangci-lint run",
       "lint:fix": "golangci-lint run --fix",
-      "format": "golangci-lint fmt"
+      "format": "golangci-lint fmt",
+      "ci": ["go build .", "devbox run lint", "devbox run test"]
     }
   }
 }
