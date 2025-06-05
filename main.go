@@ -4,12 +4,20 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
+	"slices"
+	"time"
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
 )
+
+var client = http.Client{Timeout: 5 * time.Second}
 
 func helloWorldFetcher(a *application.AppData) error {
 	a.Text = "Hello, World!"
@@ -17,9 +25,72 @@ func helloWorldFetcher(a *application.AppData) error {
 	return nil
 }
 
+func rainChanceFetcher(a *application.AppData) error {
+	// TODO: query if currently raining
+	req, err := http.NewRequest(http.MethodGet, "https://api.open-meteo.com/v1/forecast", nil)
+	if err != nil {
+		return fmt.Errorf("error creating request for rain forecast app: %w", err)
+	}
+
+	q := req.URL.Query()
+	q.Add("latitude", "-37.8136")
+	q.Add("longitude", "144.9631")
+	q.Add("hourly", "precipitation_probability")
+	q.Add("timezone", "Australia/Sydney")
+	req.URL.RawQuery = q.Encode()
+
+	response, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error performing request against rain forecast app: %w", err)
+	}
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response of rain forecast app: %w", err)
+	}
+
+	forecast := &WeatherResponse{}
+	err = json.Unmarshal(body, forecast)
+
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal weather response: %w", err)
+	}
+	hourly := forecast.GetHourlyForecast()
+
+	slices.SortFunc(hourly, func(a, b HourlyForecast) int {
+		return int(a.Time.Sub(b.Time))
+	})
+
+	nextRain := HourlyForecast{}
+	foundRain := false
+	for _, hour := range hourly {
+		if hour.PrecipitationProbability > 10 {
+			nextRain = hour
+			foundRain = true
+			break
+		}
+	}
+
+	if foundRain {
+		slog.Info("it is", "rain", nextRain.Time.String())
+		untilNextRain := nextRain.Time.Sub(time.Now())
+		if untilNextRain < time.Hour*24 {
+			a.Text = string(nextRain.PrecipitationProbability) + "% chance of rain in " + untilNextRain.Round(time.Hour).String() + " hours"
+		} else if untilNextRain < time.Hour*24*7 {
+			a.Text = string(nextRain.PrecipitationProbability) + "% chance of rain in " + string(int(untilNextRain.Hours()/24)) + " days"
+		}
+	} else {
+		a.Text = "sunny days"
+	}
+
+	return nil
+}
+
 func main() {
 	helloWorld := application.NewApplication("Hello World", helloWorldFetcher)
-	appList := []*application.Application{&helloWorld}
+	weatherApp := application.NewApplication("Rain Forecast", rainChanceFetcher)
+	appList := []*application.Application{&helloWorld, &weatherApp}
 	// TODO: read ip from config (viper?)
 	// or allow dynamic address via HTTP request
 	broker, err := broker.NewBroker(
