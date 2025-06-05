@@ -99,14 +99,14 @@ func (b *HTTPBroker) Start() {
 			for _, app := range b.applications {
 				err := app.Fetch()
 				if err != nil {
-					slog.Error("error fetching %v: %v", app.Name, err)
+					slog.Error("error encountered fetching for app", "app", app.Name, "error", err)
 				}
 			}
 
 			for _, app := range b.applications {
 				err := b.push(app)
 				if err != nil {
-					slog.Error("error pushing %v: %v", app.Name, err)
+					slog.Error("error encountered pushing to awtrix device", "app", app.Name, "error", err)
 				}
 			}
 
