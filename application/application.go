@@ -60,7 +60,7 @@ func NewApplication(name string, fetcher func(*AppData) error) Application {
 	return Application{
 		Name:    name,
 		fetcher: fetcher,
-		data:    AppData{Text: ""},
+		data:    AppData{},
 	}
 }
 
