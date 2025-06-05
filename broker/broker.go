@@ -31,10 +31,11 @@ const AdminPort = "25827"
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
-	applications []*application.Application
-	clockAddress string
-	Client       *http.Client
-	Debug        bool
+	applications  []*application.Application
+	clockAddress  string
+	Client        *http.Client
+	Debug         bool
+	DisplayConfig awtrixConfig
 }
 
 // ErrBrokerHasNoApplications occurs when an Altar Broker is instantiated with no applications.
@@ -43,8 +44,30 @@ var ErrBrokerHasNoApplications = errors.New("failed to initialise broker: no app
 // ErrIPNotValid occurs when an Altar Broker is instantiated with an invalid IP address.
 var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not valid")
 
+// https://blueforcer.github.io/awtrix3/#/api?id=json-properties-1
+type awtrixConfig struct {
+	TimeAppEnabled bool `json:"TIM"`
+}
+
+func DisableAllDefaultApps() func(*awtrixConfig) {
+	return func(cfg *awtrixConfig) {
+		defaultApps := []func(*awtrixConfig){
+			DisableDefaultTimeApp(),
+		}
+		for _, fn := range defaultApps {
+			fn(cfg)
+		}
+	}
+}
+
+func DisableDefaultTimeApp() func(*awtrixConfig) {
+	return func(cfg *awtrixConfig) {
+		cfg.TimeAppEnabled = false
+	}
+}
+
 // NewBroker instantiates a new Altar broker.
-func NewBroker(ip string, applications []*application.Application) (*HTTPBroker, error) {
+func NewBroker(ip string, applications []*application.Application, options ...func(*awtrixConfig)) (*HTTPBroker, error) {
 	if len(applications) == 0 {
 		return nil, ErrBrokerHasNoApplications
 	}
@@ -53,17 +76,26 @@ func NewBroker(ip string, applications []*application.Application) (*HTTPBroker,
 	if clockIP == nil {
 		return nil, ErrIPNotValid
 	}
-
-	return &HTTPBroker{
-		clockAddress: fmt.Sprintf("http://%v", clockIP),
-		applications: applications,
-		Client:       &http.Client{Timeout: httpTimeout},
-		Debug:        false,
-	}, nil
+	cfg := awtrixConfig{}
+	for _, option := range options {
+		option(&cfg)
+	}
+	b := HTTPBroker{
+		clockAddress:  fmt.Sprintf("http://%v", clockIP),
+		applications:  applications,
+		Client:        &http.Client{Timeout: httpTimeout},
+		Debug:         false,
+		DisplayConfig: cfg,
+	}
+	return &b, nil
 }
 
 // Start executes the broker's routine.
 func (b *HTTPBroker) Start() {
+	err := b.sendConfig()
+	if err != nil {
+		slog.Error("error settin up initial awtrix configuration", "error", err)
+	}
 	go func() {
 		for {
 			startTime := time.Now()
@@ -101,6 +133,40 @@ func (b *HTTPBroker) Start() {
 	}
 
 	log.Fatal(adminServer.ListenAndServe())
+}
+
+func (b *HTTPBroker) sendConfig() error {
+	jsonData, err := json.Marshal(b.DisplayConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal awtrix config into json: %w", err)
+	}
+	bufferedJSON := bytes.NewBuffer(jsonData)
+	debugPort := ""
+	if b.Debug {
+		debugPort = ":8080"
+	}
+
+	address := fmt.Sprintf("%v%v/api/settings", b.clockAddress, debugPort)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
+	if err != nil {
+		return fmt.Errorf("failed to create post request for awtrix configuration: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := b.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to perform post request for awtrix configuration: %w", err)
+	}
+	defer func() {
+		closeErr := resp.Body.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	return err
 }
 
 func (b *HTTPBroker) push(app *application.Application) error {
