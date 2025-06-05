@@ -56,6 +56,10 @@ func rainChanceFetcher(a *application.AppData) error {
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal weather response: %w", err)
 	}
+
+	if len(forecast.Hourly.PrecipitationProbability) == 0 {
+		return fmt.Errorf("did not receive a response body from weather api")
+	}
 	hourly := forecast.GetHourlyForecast()
 
 	slices.SortFunc(hourly, func(a, b HourlyForecast) int {
