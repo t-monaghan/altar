@@ -17,7 +17,7 @@ import (
 func Test_InvalidBrokerInstantiation(t *testing.T) {
 	t.Parallel()
 
-	toyApp := application.NewApplication("test app", func() (string, error) { return "", nil })
+	toyApp := application.NewApplication("test app", func(*application.AppData) error { return nil })
 	toyAppList := []*application.Application{&toyApp}
 
 	cases := []struct {
@@ -50,7 +50,11 @@ var empty200Response = &http.Response{
 func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	appMsg := "Hello, World!"
 	appName := "test app"
-	toyApp := application.NewApplication(appName, func() (string, error) { return appMsg, nil })
+	toyApp := application.NewApplication(appName, func(a *application.AppData) error {
+		a.Text = appMsg
+
+		return nil
+	})
 	toyAppList := []*application.Application{&toyApp}
 
 	t.Run("broker executes handler requests", func(t *testing.T) {
@@ -102,7 +106,11 @@ func Test_BrokerSetsConfig(t *testing.T) {
 
 	appMsg := "Hello, World!"
 	appName := "test app"
-	toyApp := application.NewApplication(appName, func() (string, error) { return appMsg, nil })
+	toyApp := application.NewApplication(appName, func(a *application.AppData) error {
+		a.Text = appMsg
+
+		return nil
+	})
 	toyAppList := []*application.Application{&toyApp}
 
 	cases := []struct {

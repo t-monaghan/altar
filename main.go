@@ -11,8 +11,10 @@ import (
 	"github.com/t-monaghan/altar/broker"
 )
 
-func helloWorldFetcher() (string, error) {
-	return "Hello, World!", nil
+func helloWorldFetcher(a *application.AppData) error {
+	a.Text = "Hello, World!"
+
+	return nil
 }
 
 func main() {
