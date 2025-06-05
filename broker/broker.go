@@ -44,11 +44,13 @@ var ErrBrokerHasNoApplications = errors.New("failed to initialise broker: no app
 // ErrIPNotValid occurs when an Altar Broker is instantiated with an invalid IP address.
 var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not valid")
 
-// https://blueforcer.github.io/awtrix3/#/api?id=json-properties-1
+//nolint:tagliatelle
 type awtrixConfig struct {
+	// https://blueforcer.github.io/awtrix3/#/api?id=json-properties-1
 	TimeAppEnabled bool `json:"TIM"`
 }
 
+// DisableAllDefaultApps configures the broker to diable all default apps on startup.
 func DisableAllDefaultApps() func(*awtrixConfig) {
 	return func(cfg *awtrixConfig) {
 		defaultApps := []func(*awtrixConfig){
@@ -60,6 +62,7 @@ func DisableAllDefaultApps() func(*awtrixConfig) {
 	}
 }
 
+// DisableDefaultTimeApp disables the default time app on the awtrix display on broker startup.
 func DisableDefaultTimeApp() func(*awtrixConfig) {
 	return func(cfg *awtrixConfig) {
 		cfg.TimeAppEnabled = false
@@ -67,27 +70,34 @@ func DisableDefaultTimeApp() func(*awtrixConfig) {
 }
 
 // NewBroker instantiates a new Altar broker.
-func NewBroker(ip string, applications []*application.Application, options ...func(*awtrixConfig)) (*HTTPBroker, error) {
+func NewBroker(
+	addr string,
+	applications []*application.Application,
+	options ...func(*awtrixConfig),
+) (*HTTPBroker, error) {
 	if len(applications) == 0 {
 		return nil, ErrBrokerHasNoApplications
 	}
 
-	clockIP := net.ParseIP(ip)
+	clockIP := net.ParseIP(addr)
 	if clockIP == nil {
 		return nil, ErrIPNotValid
 	}
+
 	cfg := awtrixConfig{}
 	for _, option := range options {
 		option(&cfg)
 	}
-	b := HTTPBroker{
+
+	brkr := HTTPBroker{
 		clockAddress:  fmt.Sprintf("http://%v", clockIP),
 		applications:  applications,
 		Client:        &http.Client{Timeout: httpTimeout},
 		Debug:         false,
 		DisplayConfig: cfg,
 	}
-	return &b, nil
+
+	return &brkr, nil
 }
 
 // Start executes the broker's routine.
@@ -96,6 +106,7 @@ func (b *HTTPBroker) Start() {
 	if err != nil {
 		slog.Error("error settin up initial awtrix configuration", "error", err)
 	}
+
 	go func() {
 		for {
 			startTime := time.Now()
@@ -140,7 +151,9 @@ func (b *HTTPBroker) sendConfig() error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal awtrix config into json: %w", err)
 	}
+
 	bufferedJSON := bytes.NewBuffer(jsonData)
+
 	debugPort := ""
 	if b.Debug {
 		debugPort = ":8080"
@@ -159,6 +172,7 @@ func (b *HTTPBroker) sendConfig() error {
 	if err != nil {
 		return fmt.Errorf("failed to perform post request for awtrix configuration: %w", err)
 	}
+
 	defer func() {
 		closeErr := resp.Body.Close()
 		if err == nil {
