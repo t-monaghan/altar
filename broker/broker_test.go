@@ -64,7 +64,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 		brkr.AdminPort = "54322"
 
 		brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
-			if request.URL.Path == "/api/settings" {
+			if request.URL.Path == "/api/settings" || request.URL.Path == "/api/reboot" {
 				return empty200Response, nil
 			}
 
