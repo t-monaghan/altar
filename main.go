@@ -33,8 +33,8 @@ func rainChanceFetcher(a *application.AppData) error {
 	}
 
 	q := req.URL.Query()
-	q.Add("latitude", "-37.8136")
-	q.Add("longitude", "144.9631")
+	q.Add("latitude", "-37.814")
+	q.Add("longitude", "144.9633")
 	q.Add("hourly", "precipitation_probability")
 	q.Add("timezone", "Australia/Sydney")
 	req.URL.RawQuery = q.Encode()
@@ -65,7 +65,7 @@ func rainChanceFetcher(a *application.AppData) error {
 	nextRain := HourlyForecast{}
 	foundRain := false
 	for _, hour := range hourly {
-		if hour.PrecipitationProbability > 10 {
+		if hour.PrecipitationProbability > 0 {
 			nextRain = hour
 			foundRain = true
 			break
@@ -73,15 +73,16 @@ func rainChanceFetcher(a *application.AppData) error {
 	}
 
 	if foundRain {
-		slog.Info("it is", "rain", nextRain.Time.String())
 		untilNextRain := nextRain.Time.Sub(time.Now())
 		if untilNextRain < time.Hour*24 {
-			a.Text = string(nextRain.PrecipitationProbability) + "% chance of rain in " + untilNextRain.Round(time.Hour).String() + " hours"
+			a.Text = fmt.Sprintf("%v%% chance of rain in %v hours", nextRain.PrecipitationProbability, untilNextRain.Round(time.Hour).Hours())
+		} else if untilNextRain < time.Hour*24*2 {
+			a.Text = fmt.Sprintf("%v%% chance of rain tomorrow", nextRain.PrecipitationProbability)
 		} else if untilNextRain < time.Hour*24*7 {
-			a.Text = string(nextRain.PrecipitationProbability) + "% chance of rain in " + string(int(untilNextRain.Hours()/24)) + " days"
+			a.Text = fmt.Sprintf("%v%% chance of rain in %v days", nextRain.PrecipitationProbability, int(untilNextRain.Hours()/24))
 		}
 	} else {
-		a.Text = "sunny days"
+		a.Text = "sunny week"
 	}
 
 	return nil
