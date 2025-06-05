@@ -26,8 +26,8 @@ const MinLoopTime = 5 * time.Second
 const httpTimeout = 10 * time.Second
 const idleTimeout = 120 * time.Second
 
-// AdminPort is the port the broker listens on for commands.
-const AdminPort = "25827"
+// DefaultAdminPort is the port the broker listens on for commands.
+const DefaultAdminPort = "25827"
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
@@ -35,7 +35,8 @@ type HTTPBroker struct {
 	clockAddress  string
 	Client        *http.Client
 	Debug         bool
-	DisplayConfig awtrixConfig
+	DisplayConfig AwtrixConfig
+	AdminPort     string
 }
 
 // ErrBrokerHasNoApplications occurs when an Altar Broker is instantiated with no applications.
@@ -44,36 +45,11 @@ var ErrBrokerHasNoApplications = errors.New("failed to initialise broker: no app
 // ErrIPNotValid occurs when an Altar Broker is instantiated with an invalid IP address.
 var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not valid")
 
-//nolint:tagliatelle
-type awtrixConfig struct {
-	// https://blueforcer.github.io/awtrix3/#/api?id=json-properties-1
-	TimeAppEnabled bool `json:"TIM"`
-}
-
-// DisableAllDefaultApps configures the broker to diable all default apps on startup.
-func DisableAllDefaultApps() func(*awtrixConfig) {
-	return func(cfg *awtrixConfig) {
-		defaultApps := []func(*awtrixConfig){
-			DisableDefaultTimeApp(),
-		}
-		for _, fn := range defaultApps {
-			fn(cfg)
-		}
-	}
-}
-
-// DisableDefaultTimeApp disables the default time app on the awtrix display on broker startup.
-func DisableDefaultTimeApp() func(*awtrixConfig) {
-	return func(cfg *awtrixConfig) {
-		cfg.TimeAppEnabled = false
-	}
-}
-
 // NewBroker instantiates a new Altar broker.
 func NewBroker(
 	addr string,
 	applications []*application.Application,
-	options ...func(*awtrixConfig),
+	options ...func(*AwtrixConfig),
 ) (*HTTPBroker, error) {
 	if len(applications) == 0 {
 		return nil, ErrBrokerHasNoApplications
@@ -84,7 +60,7 @@ func NewBroker(
 		return nil, ErrIPNotValid
 	}
 
-	cfg := awtrixConfig{}
+	cfg := AwtrixConfig{}
 	for _, option := range options {
 		option(&cfg)
 	}
@@ -135,8 +111,14 @@ func (b *HTTPBroker) Start() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/shutdown", shutdownHandler)
 
+	adminPort := DefaultAdminPort
+
+	if b.AdminPort != "" {
+		adminPort = b.AdminPort
+	}
+
 	adminServer := &http.Server{
-		Addr:         ":" + AdminPort,
+		Addr:         ":" + adminPort,
 		Handler:      mux,
 		ReadTimeout:  httpTimeout,
 		WriteTimeout: httpTimeout,
