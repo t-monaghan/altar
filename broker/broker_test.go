@@ -112,7 +112,8 @@ func Test_BrokerSetsConfig(t *testing.T) {
 		port        string
 	}{
 		{"some description", broker.DisableDefaultTimeApp, "{\"TIM\":false}", "43324"},
-		{"disable all default apps", broker.DisableAllDefaultApps, "{\"TIM\":false,\"WD\":false,\"DAT\":false,\"HUM\":false,\"TEMP\":false,\"BAT\":false}", "43325"},
+		{"disable all default apps", broker.DisableAllDefaultApps,
+			"{\"TIM\":false,\"WD\":false,\"DAT\":false,\"HUM\":false,\"TEMP\":false,\"BAT\":false}", "43325"},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.description, func(t *testing.T) {

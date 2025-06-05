@@ -25,6 +25,7 @@ import (
 const MinLoopTime = 5 * time.Second
 const httpTimeout = 10 * time.Second
 const idleTimeout = 120 * time.Second
+const defaultWebPort = "8080"
 
 // DefaultAdminPort is the port the broker listens on for commands.
 const DefaultAdminPort = "25827"
@@ -80,7 +81,15 @@ func NewBroker(
 func (b *HTTPBroker) Start() {
 	err := b.sendConfig()
 	if err != nil {
-		slog.Error("error settin up initial awtrix configuration", "error", err)
+		slog.Error("error setting up initial awtrix configuration", "error", err)
+	}
+
+	slog.Info("rebooting awtrix device")
+
+	// rebooting awtrix is required to ensure the configuration is applied
+	err = b.rebootAwtrix()
+	if err != nil {
+		slog.Error("error rebooting the awtrix device", "error", err)
 	}
 
 	go func() {
@@ -138,7 +147,7 @@ func (b *HTTPBroker) sendConfig() error {
 
 	debugPort := ""
 	if b.Debug {
-		debugPort = ":8080"
+		debugPort = defaultWebPort
 	}
 
 	address := fmt.Sprintf("%v%v/api/settings", b.clockAddress, debugPort)
@@ -175,7 +184,7 @@ func (b *HTTPBroker) push(app *application.Application) error {
 
 	debugPort := ""
 	if b.Debug {
-		debugPort = ":8080"
+		debugPort = defaultWebPort
 	}
 
 	address := fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, debugPort, url.QueryEscape(app.Name))
@@ -220,4 +229,32 @@ func shutdownHandler(w http.ResponseWriter, req *http.Request) {
 		slog.Info("shutdown request received - shutting down")
 		os.Exit(1)
 	}
+}
+
+func (b *HTTPBroker) rebootAwtrix() error {
+	debugPort := ""
+	if b.Debug {
+		debugPort = defaultWebPort
+	}
+
+	address := fmt.Sprintf("%v%v/api/reboot", b.clockAddress, debugPort)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create post request for rebooting awtrix device: %w", err)
+	}
+
+	resp, err := b.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to perform post request for rebooting awtrix device: %w", err)
+	}
+
+	defer func() {
+		closeErr := resp.Body.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	return err
 }
