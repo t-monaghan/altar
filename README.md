@@ -24,8 +24,9 @@ package main
 
 import "github.com/t-monaghan/altar/application"
 
-func helloWorldFetcher() (string, error) {
-	return "Hello, World!", nil
+func helloWorldFetcher(a *application.AppData) error {
+	a.Text = "Hello, World!"
+	return nil
 }
 
 var HelloWorld = application.NewApplication("Hello World", helloWorldFetcher)
@@ -47,12 +48,18 @@ import (
 )
 
 func main() {
-	appList := []*application.Application{&HelloWorld}
-	broker, err := broker.NewBroker("YOUR_AWTRIX_IP_HERE", appList)
+	helloWorld := application.NewApplication("Hello World", helloWorldFetcher)
+	appList := []*application.Application{&helloWorld}
+	broker, err := broker.NewBroker(
+		"YOUR_AWTRIX_IP_HERE",
+		appList,
+	)
+
 	if err != nil {
-		slog.Error("error instantiating new broker: %v", "error", err)
+		slog.Error("error instantiating new broker", "error", err)
 		os.Exit(1)
 	}
+
 	broker.Start()
 }
 ```
