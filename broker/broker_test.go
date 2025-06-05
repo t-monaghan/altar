@@ -113,7 +113,6 @@ func Test_BrokerSetsConfig(t *testing.T) {
 		{"some description", broker.DisableDefaultTimeApp, "{\"TIM\":false}"},
 	}
 	for _, testCase := range cases {
-		t.Parallel()
 		t.Run(testCase.description, func(t *testing.T) {
 			t.Parallel()
 
