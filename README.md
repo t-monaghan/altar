@@ -3,25 +3,23 @@
 # **A**wtrix **L**istens **T**o **A**ltar **R**equests
 
 > [!WARNING]
-> This project is still a work in progress and is not yet ready for use.
+> This project is a work in progress and is not yet ready for use.
 
 ## Summary
 
-Altar is a framework that allows developers to create custom Applications for the [Awtrix](https://blueforcer.github.io/awtrix3/#/) platform. It's aim is to provide a simple and intuitive manner to stand up a broker that can fetch data from various sources and display it on Awtrix supported devices.
+Altar is a library for golang that allows developers to create custom Applications for the [Awtrix](https://blueforcer.github.io/awtrix3/#/) platform. It's aim is to provide a simple and intuitive manner to stand up a broker with a collection of applications and display it on Awtrix supported devices.
 
 ### See it in action
 
-You don't need an awtrix device to see this run. To have a look at what's going on you just need [devbox](https://www.jetify.com/devbox/). After installing devbox simply run `devbox services up` in this project and you can see the requests from the example application hitting the request-debugger process.
+You don't need an awtrix device to run this project. To see it in action you can install [devbox](https://www.jetify.com/devbox/) and run `devbox services up` to see the requests from the demo application get captured by a request logger.
 
 ## Using the library
 
-### Getting Started
+### Quickstart
 
 First define an Application:
 
 ```go filename="hello.go"
-// for brevity we're defining the application in main
-// defining applications in a separate package is recommended
 package main
 
 import "github.com/t-monaghan/altar/application"
@@ -33,13 +31,14 @@ func helloWorldFetcher() (string, error) {
 var HelloWorld = application.NewApplication("Hello World", helloWorldFetcher)
 ```
 
-Then define the main function, starting the broker with a list including this application:
+Then define the main function, starting the broker with a list containing the above application:
 
 ```go filename="main.go"
 package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 
@@ -48,17 +47,13 @@ import (
 )
 
 func main() {
-	appList := []*application.Application{HelloWorld}
-	broker, err := broker.NewBroker(net.ParseIP("YOUR_AWTRIX_IP_HERE"), appList)
+	appList := []*application.Application{&HelloWorld}
+	broker, err := broker.NewBroker("YOUR_AWTRIX_IP_HERE", appList)
 	if err != nil {
-		fmt.Printf("error instantiating new broker: %v", err)
+		slog.Error("error instantiating new broker: %v", "error", err)
 		os.Exit(1)
 	}
-	err = broker.Start()
-	if err != nil {
-		fmt.Printf("broker encountered an error during runtime: %v", err)
-		os.Exit(1)
-	}
+	broker.Start()
 }
 ```
 
