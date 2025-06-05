@@ -26,15 +26,17 @@ const MinLoopTime = 5 * time.Second
 const httpTimeout = 10 * time.Second
 const idleTimeout = 120 * time.Second
 
-// AdminPort is the port the broker listens on for commands.
-const AdminPort = "25827"
+// DefaultAdminPort is the port the broker listens on for commands.
+const DefaultAdminPort = "25827"
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
-	applications []*application.Application
-	clockAddress string
-	Client       *http.Client
-	Debug        bool
+	applications  []*application.Application
+	clockAddress  string
+	Client        *http.Client
+	Debug         bool
+	DisplayConfig AwtrixConfig
+	AdminPort     string
 }
 
 // ErrBrokerHasNoApplications occurs when an Altar Broker is instantiated with no applications.
@@ -44,26 +46,43 @@ var ErrBrokerHasNoApplications = errors.New("failed to initialise broker: no app
 var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not valid")
 
 // NewBroker instantiates a new Altar broker.
-func NewBroker(ip string, applications []*application.Application) (*HTTPBroker, error) {
+func NewBroker(
+	addr string,
+	applications []*application.Application,
+	options ...func(*AwtrixConfig),
+) (*HTTPBroker, error) {
 	if len(applications) == 0 {
 		return nil, ErrBrokerHasNoApplications
 	}
 
-	clockIP := net.ParseIP(ip)
+	clockIP := net.ParseIP(addr)
 	if clockIP == nil {
 		return nil, ErrIPNotValid
 	}
 
-	return &HTTPBroker{
-		clockAddress: fmt.Sprintf("http://%v", clockIP),
-		applications: applications,
-		Client:       &http.Client{Timeout: httpTimeout},
-		Debug:        false,
-	}, nil
+	cfg := AwtrixConfig{}
+	for _, option := range options {
+		option(&cfg)
+	}
+
+	brkr := HTTPBroker{
+		clockAddress:  fmt.Sprintf("http://%v", clockIP),
+		applications:  applications,
+		Client:        &http.Client{Timeout: httpTimeout},
+		Debug:         false,
+		DisplayConfig: cfg,
+	}
+
+	return &brkr, nil
 }
 
 // Start executes the broker's routine.
 func (b *HTTPBroker) Start() {
+	err := b.sendConfig()
+	if err != nil {
+		slog.Error("error settin up initial awtrix configuration", "error", err)
+	}
+
 	go func() {
 		for {
 			startTime := time.Now()
@@ -92,8 +111,14 @@ func (b *HTTPBroker) Start() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/shutdown", shutdownHandler)
 
+	adminPort := DefaultAdminPort
+
+	if b.AdminPort != "" {
+		adminPort = b.AdminPort
+	}
+
 	adminServer := &http.Server{
-		Addr:         ":" + AdminPort,
+		Addr:         ":" + adminPort,
 		Handler:      mux,
 		ReadTimeout:  httpTimeout,
 		WriteTimeout: httpTimeout,
@@ -101,6 +126,43 @@ func (b *HTTPBroker) Start() {
 	}
 
 	log.Fatal(adminServer.ListenAndServe())
+}
+
+func (b *HTTPBroker) sendConfig() error {
+	jsonData, err := json.Marshal(b.DisplayConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal awtrix config into json: %w", err)
+	}
+
+	bufferedJSON := bytes.NewBuffer(jsonData)
+
+	debugPort := ""
+	if b.Debug {
+		debugPort = ":8080"
+	}
+
+	address := fmt.Sprintf("%v%v/api/settings", b.clockAddress, debugPort)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
+	if err != nil {
+		return fmt.Errorf("failed to create post request for awtrix configuration: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := b.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to perform post request for awtrix configuration: %w", err)
+	}
+
+	defer func() {
+		closeErr := resp.Body.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	return err
 }
 
 func (b *HTTPBroker) push(app *application.Application) error {

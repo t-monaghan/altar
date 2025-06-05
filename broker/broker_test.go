@@ -34,12 +34,17 @@ func Test_InvalidBrokerInstantiation(t *testing.T) {
 			t.Parallel()
 
 			_, err := broker.NewBroker(testCase.IPAddress, testCase.Applications)
-
 			if err == nil || !errors.Is(err, testCase.expected) {
 				t.Fatalf("did not throw expected error\n\texpected: %v\n\treceived: %v", testCase.expected, err)
 			}
 		})
 	}
+}
+
+//nolint:gochecknoglobals
+var empty200Response = &http.Response{
+	StatusCode: http.StatusOK,
+	Body:       io.NopCloser(bytes.NewBufferString("")),
 }
 
 func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
@@ -51,12 +56,18 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	t.Run("broker executes handler requests", func(t *testing.T) {
 		t.Parallel()
 
-		testBroker, err := broker.NewBroker("127.0.0.1", toyAppList)
+		brkr, err := broker.NewBroker("127.0.0.1", toyAppList)
 		if err != nil {
 			t.Fatalf("should not throw error creating broker\n\treceived error: %v", err)
 		}
 
-		testBroker.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
+		brkr.AdminPort = "54322"
+
+		brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
+			if request.URL.Path == "/api/settings" {
+				return empty200Response, nil
+			}
+
 			body, err := io.ReadAll(request.Body)
 			if err != nil {
 				t.Fatalf("failed reading body of broker request\n\terror: %v", err)
@@ -72,35 +83,101 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 				t.Fatalf("incorrect query paramater for app name\n\texpected: %v\n\treceived: %v", appName, queries["name"])
 			}
 
-			return &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       io.NopCloser(bytes.NewBufferString("")),
-			}, nil
+			return empty200Response, nil
 		})
 		go func() {
-			testBroker.Start()
+			brkr.Start()
 		}()
 
 		// TODO: how can I have a successful request propagate a "pass" message from the goroutine?
 		// OR is the goroutine the wrong pattern here?
 		time.Sleep(time.Second)
 
-		realClient := &http.Client{Timeout: 10 * time.Second}
-		req, err := http.NewRequestWithContext(
-			t.Context(),
-			http.MethodPost,
-			"http://localhost:"+broker.AdminPort,
-			bytes.NewBufferString("confirm"),
-		)
-
-		if err != nil {
-			t.Fatalf("should not throw error creating shutdown request\n\treceived error: %v", err)
-		}
-
-		resp, err := realClient.Do(req)
-		if err != nil {
-			t.Fatalf("failed to send shutdown request\n\terror: %v", err)
-		}
-		defer resp.Body.Close() //nolint:errcheck
+		shutdownBroker(t, brkr)
 	})
+}
+
+func Test_BrokerSetsConfig(t *testing.T) {
+	t.Parallel()
+
+	appMsg := "Hello, World!"
+	appName := "test app"
+	toyApp := application.NewApplication(appName, func() (string, error) { return appMsg, nil })
+	toyAppList := []*application.Application{&toyApp}
+
+	cases := []struct {
+		description string
+		configFn    func() func(*broker.AwtrixConfig)
+		expected    string
+	}{
+		{"some description", broker.DisableDefaultTimeApp, "{\"TIM\":false}"},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.description, func(t *testing.T) {
+			t.Parallel()
+
+			brkr, err := broker.NewBroker("127.0.0.1", toyAppList, broker.DisableDefaultTimeApp())
+			if err != nil {
+				t.Fatalf("should not throw error creating broker\n\treceived error: %v", err)
+			}
+
+			brkr.AdminPort = "43324"
+
+			brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
+				if request.URL.Path != "/api/settings" {
+					return empty200Response, nil
+				}
+
+				body, err := io.ReadAll(request.Body)
+				if err != nil {
+					t.Fatalf("failed reading body of broker request\n\terror: %v", err)
+				}
+
+				if string(body) != testCase.expected {
+					t.Fatalf(
+						"broker sent request with incorrect body\n\texpected: %v\n\treceived: %v",
+						testCase.expected,
+						string(body))
+				}
+
+				return empty200Response, nil
+			})
+			go func() {
+				brkr.Start()
+			}()
+
+			// TODO: how can I have a successful request propagate a "pass" message from the goroutine?
+			// OR is the goroutine the wrong pattern here?
+			time.Sleep(time.Second)
+
+			shutdownBroker(t, brkr)
+		})
+	}
+}
+
+func shutdownBroker(t *testing.T, brkr *broker.HTTPBroker) {
+	t.Helper()
+
+	realClient := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		"http://localhost:"+brkr.AdminPort,
+		bytes.NewBufferString("confirm"),
+	)
+
+	if err != nil {
+		t.Fatalf("should not throw error creating shutdown request\n\treceived error: %v", err)
+	}
+
+	resp, err := realClient.Do(req)
+	if err != nil {
+		t.Fatalf("failed to send shutdown request\n\terror: %v", err)
+	}
+
+	func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("error closing response body: %v", err)
+		}
+	}()
 }

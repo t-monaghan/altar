@@ -20,7 +20,11 @@ func main() {
 	appList := []*application.Application{&helloWorld}
 	// TODO: read ip from config (viper?)
 	// or allow dynamic address via HTTP request
-	broker, err := broker.NewBroker("127.0.0.1", appList)
+	broker, err := broker.NewBroker(
+		"127.0.0.1",
+		appList,
+		broker.DisableAllDefaultApps(),
+	)
 	// TODO: read debug from flag (cobra/viper?)
 	broker.Debug = true
 

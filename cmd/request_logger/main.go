@@ -8,6 +8,11 @@ import (
 	"os"
 )
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("request logged successfully"))
+}
+
 func requestLoggerHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -30,7 +35,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", requestLoggerHandler)
-
+	http.HandleFunc("/logger/api/health", healthHandler)
 	addr := ":" + port
 	slog.Info("starting request logger server on " + addr)
 
