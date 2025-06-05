@@ -31,7 +31,7 @@ func helloWorldFetcher() (string, error) {
 var HelloWorld = application.NewApplication("Hello World", helloWorldFetcher)
 ```
 
-Then instantiate the broker with a list including this application, before starting it:
+Then define the main function, starting the broker with a list containing the above application:
 
 ```go filename="main.go"
 package main
