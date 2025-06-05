@@ -25,7 +25,7 @@ import (
 const MinLoopTime = 5 * time.Second
 const httpTimeout = 10 * time.Second
 const idleTimeout = 120 * time.Second
-const defaultWebPort = "8080"
+const defaultWebPort = ":8080"
 
 // DefaultAdminPort is the port the broker listens on for commands.
 const DefaultAdminPort = "25827"
