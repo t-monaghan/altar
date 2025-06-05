@@ -109,19 +109,21 @@ func Test_BrokerSetsConfig(t *testing.T) {
 		description string
 		configFn    func() func(*broker.AwtrixConfig)
 		expected    string
+		port        string
 	}{
-		{"some description", broker.DisableDefaultTimeApp, "{\"TIM\":false}"},
+		{"some description", broker.DisableDefaultTimeApp, "{\"TIM\":false}", "43324"},
+		{"disable all default apps", broker.DisableAllDefaultApps, "{\"TIM\":false,\"WD\":false,\"DAT\":false,\"HUM\":false,\"TEMP\":false,\"BAT\":false}", "43325"},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.description, func(t *testing.T) {
 			t.Parallel()
 
-			brkr, err := broker.NewBroker("127.0.0.1", toyAppList, broker.DisableDefaultTimeApp())
+			brkr, err := broker.NewBroker("127.0.0.1", toyAppList, testCase.configFn())
 			if err != nil {
 				t.Fatalf("should not throw error creating broker\n\treceived error: %v", err)
 			}
 
-			brkr.AdminPort = "43324"
+			brkr.AdminPort = testCase.port
 
 			brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
 				if request.URL.Path != "/api/settings" {
