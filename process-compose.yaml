@@ -6,4 +6,4 @@ processes:
     command: watchexec --exts go --restart go run .
 
   request-logger:
-    command: devbox run request-logger
+    command: watchexec --watch cmd/request_logger --restart devbox run request-logger
