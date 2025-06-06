@@ -31,8 +31,17 @@ const defaultWebPort = ":8080"
 // DefaultAdminPort is the port the broker listens on for commands.
 const DefaultAdminPort = "25827"
 
-// AdminShutdownCommand is the command recognised by altar's admin server as a call to shutdown.
-const AdminShutdownCommand = "DOWN"
+type AltarAdminRequest struct {
+	Command AltarAdminCommand `json:"command"`
+	Data    string            `json:"data,omitempty"`
+}
+
+type AltarAdminCommand string
+
+const (
+	// AdminShutdownCommand is the command recognised by altar's admin server as a call to shutdown.
+	AdminShutdownCommand AltarAdminCommand = "DOWN"
+)
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
@@ -246,7 +255,16 @@ func commandHandler(wrtr http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	switch string(body) {
+	requestCommand := &AltarAdminRequest{}
+	err = json.Unmarshal(body, requestCommand)
+	if err != nil {
+		slog.Error("admin server failed to unmarshal command request")
+		wrtr.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	switch requestCommand.Command {
 	case AdminShutdownCommand:
 		slog.Info("admin server received shutdown command - shutting down")
 		os.Exit(0)
