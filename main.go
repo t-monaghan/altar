@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -18,24 +19,38 @@ func helloWorldFetcher(a *application.Application) error {
 	return nil
 }
 
-func slowAppHandler(a *application.Application) error {
-	a.Data.Text = a.PollRate.String()
+func randomlySkip(a *application.Application) error {
+	r := time.Now().Second()
+	if r%2 != 0 {
+		a.PushOnNextCall = false
+	}
 
 	return nil
 }
 
+func throwsErrors(_ *application.Application) error {
+	return fmt.Errorf("an example of an error")
+}
+
 func main() {
-	helloWorld := application.NewApplication("Hello World", helloWorldFetcher)
-	slowApp := application.NewApplication("Slow App", slowAppHandler)
+	slowApp := application.NewApplication("Slow App", helloWorldFetcher)
 	slowApp.PollRate = time.Second * 30
+
 	fastApp := application.NewApplication("Fast App", helloWorldFetcher)
 	fastApp.PollRate = time.Second * 2
-	appList := []*application.Application{&helloWorld, &slowApp, &fastApp}
+
+	inconsistentApp := application.NewApplication("Inconsistent App", randomlySkip)
+	inconsistentApp.PollRate = time.Second * 5
+
+	erroringApp := application.NewApplication("Throws Errors", throwsErrors)
+
+	appList := []*application.Application{&slowApp, &fastApp, &inconsistentApp, &erroringApp}
 	broker, err := broker.NewBroker(
 		"127.0.0.1",
 		appList,
 		broker.DisableAllDefaultApps(),
 	)
+
 	broker.Debug = true
 
 	if err != nil {
