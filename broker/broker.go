@@ -111,12 +111,16 @@ func (b *HTTPBroker) Start() {
 		for {
 			startTime := time.Now()
 
-			// TODO: only update applications according to their schedule,
-			// e.g. an Application should define how often to fetch, and push should only happen if a fetch happened
+			var quickestPoll = time.Hour * 9000
+
 			for _, app := range b.applications {
 				err := app.Fetch()
 				if err != nil {
 					slog.Error("error fetching %v: %v", app.Name, err)
+				}
+
+				if app.PollRate < quickestPoll {
+					quickestPoll = app.PollRate
 				}
 			}
 
@@ -128,8 +132,8 @@ func (b *HTTPBroker) Start() {
 			}
 
 			duration := time.Since(startTime)
-			if duration < MinLoopTime {
-				time.Sleep(MinLoopTime - duration)
+			if duration < quickestPoll {
+				time.Sleep(quickestPoll - duration)
 			}
 		}
 	}()
@@ -196,6 +200,14 @@ func (b *HTTPBroker) sendConfig() error {
 }
 
 func (b *HTTPBroker) push(app *application.Application) error {
+	if !app.ShouldPushToAwtrix() {
+		slog.Debug("skipping push for app", "app", app.Name)
+
+		return nil
+	}
+
+	app.HasUnpushedData = false
+
 	jsonData, err := json.Marshal(app.GetData())
 	if err != nil {
 		return fmt.Errorf("failed to marshal %v data into json: %w", app.Name, err)

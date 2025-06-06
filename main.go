@@ -6,20 +6,31 @@ package main
 import (
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
 )
 
-func helloWorldFetcher(a *application.AppData) error {
-	a.Text = "Hello, World!"
+func helloWorldFetcher(a *application.Application) error {
+	a.Data.Text = "Hello, World!"
+
+	return nil
+}
+
+func slowAppHandler(a *application.Application) error {
+	a.Data.Text = a.PollRate.String()
 
 	return nil
 }
 
 func main() {
 	helloWorld := application.NewApplication("Hello World", helloWorldFetcher)
-	appList := []*application.Application{&helloWorld}
+	slowApp := application.NewApplication("Slow App", slowAppHandler)
+	slowApp.PollRate = time.Second * 30
+	fastApp := application.NewApplication("Fast App", helloWorldFetcher)
+	fastApp.PollRate = time.Second * 2
+	appList := []*application.Application{&helloWorld, &slowApp, &fastApp}
 	broker, err := broker.NewBroker(
 		"127.0.0.1",
 		appList,
