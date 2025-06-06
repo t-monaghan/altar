@@ -93,7 +93,15 @@ func NewBroker(
 }
 
 // Start executes the broker's routine.
+//
+// TODO: reduce complexity, try flattening
+//
+//nolint:cyclop,funlen
 func (b *HTTPBroker) Start() {
+	if b.Debug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
+
 	err := b.sendConfig()
 	if err != nil {
 		slog.Error("error setting up initial awtrix configuration", "error", err)
@@ -116,7 +124,8 @@ func (b *HTTPBroker) Start() {
 			for _, app := range b.applications {
 				err := app.Fetch()
 				if err != nil {
-					slog.Error("error fetching %v: %v", app.Name, err)
+					slog.Error("error encountered in fetching", "app", app.Name, "error", err)
+					app.PushOnNextCall = false
 				}
 
 				if app.PollRate < quickestPoll {
@@ -247,6 +256,7 @@ func (b *HTTPBroker) push(app *application.Application) error {
 	}
 
 	slog.Debug("pushed", "app", app.Name)
+
 	return err
 }
 
