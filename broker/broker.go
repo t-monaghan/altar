@@ -206,7 +206,7 @@ func (b *HTTPBroker) push(app *application.Application) error {
 		return nil
 	}
 
-	app.HasUnpushedData = false
+	app.PushOnNextCall = false
 
 	jsonData, err := json.Marshal(app.GetData())
 	if err != nil {
@@ -246,6 +246,7 @@ func (b *HTTPBroker) push(app *application.Application) error {
 			"http-status", resp.Status, "app", app.Name)
 	}
 
+	slog.Debug("pushed", "app", app.Name)
 	return err
 }
 

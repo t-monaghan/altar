@@ -55,22 +55,22 @@ type AppData struct {
 
 // Application is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
 type Application struct {
-	Name            string
-	fetcher         func(*Application) error
-	Data            AppData
-	PollRate        time.Duration
-	lastPolled      time.Time
-	HasUnpushedData bool
+	Name           string
+	fetcher        func(*Application) error
+	Data           AppData
+	PollRate       time.Duration
+	lastPolled     time.Time
+	PushOnNextCall bool
 }
 
 // NewApplication Instantiates a new Altar application.
 func NewApplication(name string, fetcher func(*Application) error) Application {
 	return Application{
-		Name:            name,
-		fetcher:         fetcher,
-		Data:            AppData{},
-		PollRate:        time.Minute,
-		HasUnpushedData: false,
+		Name:           name,
+		fetcher:        fetcher,
+		Data:           AppData{},
+		PollRate:       time.Second * 10,
+		PushOnNextCall: false,
 	}
 }
 
@@ -87,13 +87,13 @@ func (a *Application) ShouldFetch() bool {
 
 // ShouldPushToAwtrix defines whether an application should push it's data to Awtrix.
 func (a *Application) ShouldPushToAwtrix() bool {
-	return a.HasUnpushedData
+	return a.PushOnNextCall
 }
 
 // Fetch uses the application's fetcher to query for new data.
 func (a *Application) Fetch() error {
 	if !a.ShouldFetch() {
-		slog.Debug("skipping app fetch"+a.Name,
+		slog.Debug("skipping app fetch", "app", a.Name,
 			"seconds-since-last-fetch", time.Since(a.lastPolled).Seconds(), "poll-rate-seconds", a.PollRate.Seconds())
 
 		return nil
@@ -103,7 +103,7 @@ func (a *Application) Fetch() error {
 		"seconds-since-last-fetch", time.Since(a.lastPolled).Seconds(), "poll-rate-seconds", a.PollRate.Seconds())
 
 	a.lastPolled = time.Now()
-	a.HasUnpushedData = true
+	a.PushOnNextCall = true
 
 	return a.fetcher(a)
 }
