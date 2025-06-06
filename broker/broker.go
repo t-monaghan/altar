@@ -174,6 +174,10 @@ func (b *HTTPBroker) sendConfig() error {
 		}
 	}()
 
+	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
+		slog.Error("awtrix has responded to configuration request with non-2xx http response", "http-status", resp.Status)
+	}
+
 	return err
 }
 
@@ -212,7 +216,8 @@ func (b *HTTPBroker) push(app *application.Application) error {
 	}()
 
 	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
-		slog.Error("awtrix has responded with non-2xx http response", "http-status", resp.Status, "app", app.Name)
+		slog.Error("awtrix has responded to app update with non-2xx http response",
+			"http-status", resp.Status, "app", app.Name)
 	}
 
 	return err
@@ -262,6 +267,11 @@ func (b *HTTPBroker) rebootAwtrix() error {
 			err = closeErr
 		}
 	}()
+
+	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
+		slog.Error("awtrix has responded to reboot command with non-2xx http response",
+			"http-status", resp.Status)
+	}
 
 	return err
 }
