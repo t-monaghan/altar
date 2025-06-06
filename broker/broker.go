@@ -31,6 +31,9 @@ const defaultWebPort = ":8080"
 // DefaultAdminPort is the port the broker listens on for commands.
 const DefaultAdminPort = "25827"
 
+// AdminShutdownCommand is the command recognised by altar's admin server as a call to shutdown.
+const AdminShutdownCommand = "DOWN"
+
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
 	applications  []*application.Application
@@ -121,7 +124,7 @@ func (b *HTTPBroker) Start() {
 	}()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/shutdown", shutdownHandler)
+	mux.HandleFunc("/admin/command", commandHandler)
 
 	adminPort := DefaultAdminPort
 
@@ -223,11 +226,10 @@ func (b *HTTPBroker) push(app *application.Application) error {
 	return err
 }
 
-// TODO: have one general handler listen to four letter/worded commands.
-func shutdownHandler(w http.ResponseWriter, req *http.Request) {
+func commandHandler(wrtr http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusInternalServerError)
+		http.Error(wrtr, "Error reading request body", http.StatusInternalServerError)
 
 		return
 	}
@@ -237,9 +239,22 @@ func shutdownHandler(w http.ResponseWriter, req *http.Request) {
 		slog.Error("error in shutdown handler", "error", err)
 	}
 
-	if string(body) == "confirm" && req.Method == http.MethodPost {
-		slog.Info("shutdown request received - shutting down")
-		os.Exit(1)
+	if req.Method != http.MethodPost {
+		wrtr.WriteHeader(http.StatusBadRequest)
+		_, _ = wrtr.Write([]byte("request to admin commands did not use the POST method"))
+
+		return
+	}
+
+	switch string(body) {
+	case AdminShutdownCommand:
+		slog.Info("admin server received shutdown command - shutting down")
+		os.Exit(0)
+	default:
+		wrtr.WriteHeader(http.StatusBadRequest)
+		_, _ = wrtr.Write([]byte("admin server did not recognise the command: '" + string(body) + "'"))
+
+		return
 	}
 }
 

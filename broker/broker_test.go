@@ -174,7 +174,7 @@ func shutdownBroker(t *testing.T, brkr *broker.HTTPBroker) {
 		t.Context(),
 		http.MethodPost,
 		"http://localhost:"+brkr.AdminPort,
-		bytes.NewBufferString("confirm"),
+		bytes.NewBufferString(broker.AdminShutdownCommand),
 	)
 
 	if err != nil {
