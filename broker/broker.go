@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/t-monaghan/altar/application"
@@ -93,10 +94,6 @@ func NewBroker(
 }
 
 // Start executes the broker's routine.
-//
-// TODO: reduce complexity, try flattening
-//
-//nolint:cyclop,funlen
 func (b *HTTPBroker) Start() {
 	if b.Debug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
@@ -116,35 +113,7 @@ func (b *HTTPBroker) Start() {
 	}
 
 	go func() {
-		for {
-			startTime := time.Now()
-
-			var quickestPoll = time.Hour * 9000
-
-			for _, app := range b.applications {
-				err := app.Fetch()
-				if err != nil {
-					slog.Error("error encountered in fetching", "app", app.Name, "error", err)
-					app.PushOnNextCall = false
-				}
-
-				if app.PollRate < quickestPoll {
-					quickestPoll = app.PollRate
-				}
-			}
-
-			for _, app := range b.applications {
-				err := b.push(app)
-				if err != nil {
-					slog.Error("error pushing %v: %v", app.Name, err)
-				}
-			}
-
-			duration := time.Since(startTime)
-			if duration < quickestPoll {
-				time.Sleep(quickestPoll - duration)
-			}
-		}
+		fetchAndPushApps(b)
 	}()
 
 	mux := http.NewServeMux()
@@ -165,6 +134,54 @@ func (b *HTTPBroker) Start() {
 	}
 
 	log.Fatal(adminServer.ListenAndServe())
+}
+
+func fetchAndPushApps(brkr *HTTPBroker) {
+	for {
+		startTime := time.Now()
+
+		var quickestPoll = time.Hour * 9000
+
+		var fetchGroup sync.WaitGroup
+
+		var pollMx sync.Mutex
+
+		for _, app := range brkr.applications {
+			fetchGroup.Add(1)
+
+			go func(app *application.Application) {
+				defer fetchGroup.Done()
+
+				err := app.Fetch()
+				if err != nil {
+					slog.Error("error encountered in fetching", "app", app.Name, "error", err)
+					app.PushOnNextCall = false
+				}
+
+				pollMx.Lock()
+				if app.PollRate < quickestPoll {
+					quickestPoll = app.PollRate
+				}
+				pollMx.Unlock()
+			}(app)
+		}
+
+		fetchGroup.Wait()
+
+		// TODO: decide if push should be sent as batch request, or similarly to above with goroutines
+		// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#sending-multiple-custom-apps-simultaneously
+		for _, app := range brkr.applications {
+			err := brkr.push(app)
+			if err != nil {
+				slog.Error("error pushing %v: %v", app.Name, err)
+			}
+		}
+
+		duration := time.Since(startTime)
+		if duration < quickestPoll {
+			time.Sleep(quickestPoll - duration)
+		}
+	}
 }
 
 func (b *HTTPBroker) sendConfig() error {
