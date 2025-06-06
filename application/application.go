@@ -63,13 +63,15 @@ type Application struct {
 	PushOnNextCall bool
 }
 
+const defaultPollRate = time.Second * 10
+
 // NewApplication Instantiates a new Altar application.
 func NewApplication(name string, fetcher func(*Application) error) Application {
 	return Application{
 		Name:           name,
 		fetcher:        fetcher,
 		Data:           AppData{},
-		PollRate:       time.Second * 10,
+		PollRate:       defaultPollRate,
 		PushOnNextCall: false,
 	}
 }
