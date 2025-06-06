@@ -37,5 +37,3 @@ func main() {
 
 	broker.Start()
 }
-
-// TODO: have a server spawn and listen to "/kill" to allow rolling a new broker build
