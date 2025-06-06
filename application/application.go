@@ -3,6 +3,8 @@
 // The behaviour for an application is defined in it's fetcher
 package application
 
+import "time"
+
 // AppData is Altar's presentation of a custom Awtrix application.
 //
 //nolint:tagliatelle
@@ -50,18 +52,26 @@ type AppData struct {
 
 // Application is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
 type Application struct {
-	Name    string
-	fetcher func(*AppData) error
-	data    AppData
+	Name     string
+	fetcher  func(*AppData) error
+	data     AppData
+	PollRate time.Duration
 }
 
 // NewApplication Instantiates a new Altar application.
 func NewApplication(name string, fetcher func(*AppData) error) Application {
 	return Application{
-		Name:    name,
-		fetcher: fetcher,
-		data:    AppData{},
+		Name:     name,
+		fetcher:  fetcher,
+		data:     AppData{},
+		PollRate: time.Minute,
 	}
+}
+
+// SetPollRateByRateLimit is a helper function that sets the application's poll rate
+// when given the count of requests per duration.
+func (a *Application) SetPollRateByRateLimit(requests int, perDuration time.Duration) {
+	a.PollRate = time.Duration(requests / int(perDuration.Nanoseconds()))
 }
 
 // Fetch uses the application's fetcher to query for new data.

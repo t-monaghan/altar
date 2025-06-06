@@ -31,11 +31,13 @@ const defaultWebPort = ":8080"
 // DefaultAdminPort is the port the broker listens on for commands.
 const DefaultAdminPort = "25827"
 
+// AltarAdminRequest defines the expected request type for the altar admin server.
 type AltarAdminRequest struct {
 	Command AltarAdminCommand `json:"command"`
 	Data    string            `json:"data,omitempty"`
 }
 
+// AltarAdminCommand defines the commands the altar admin server recognises.
 type AltarAdminCommand string
 
 const (
@@ -256,6 +258,7 @@ func commandHandler(wrtr http.ResponseWriter, req *http.Request) {
 	}
 
 	requestCommand := &AltarAdminRequest{}
+
 	err = json.Unmarshal(body, requestCommand)
 	if err != nil {
 		slog.Error("admin server failed to unmarshal command request")
