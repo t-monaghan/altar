@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/t-monaghan/altar/application"
+	"github.com/t-monaghan/altar/utils"
 )
 
 // MinLoopTime is the minimum time the broker will spend between iterations of fetching and pushing updates.
@@ -96,6 +97,8 @@ func (b *HTTPBroker) Start() {
 		for {
 			startTime := time.Now()
 
+			// TODO: only update applications according to their schedule,
+			// e.g. an Application should define how often to fetch, and push should only happen if a fetch happened
 			for _, app := range b.applications {
 				err := app.Fetch()
 				if err != nil {
@@ -200,13 +203,17 @@ func (b *HTTPBroker) push(app *application.Application) error {
 	if err != nil {
 		return fmt.Errorf("failed to perform post request for %v: %w", app.Name, err)
 	}
-	// TODO: investigate why no error is printed when request has no response
+
 	defer func() {
 		closeErr := resp.Body.Close()
 		if err == nil {
-			err = closeErr
+			err = fmt.Errorf("failed to close body of app push request: %w", closeErr)
 		}
 	}()
+
+	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
+		slog.Error("awtrix has responded with non-2xx http response", "http-status", resp.Status, "app", app.Name)
+	}
 
 	return err
 }
