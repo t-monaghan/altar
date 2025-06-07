@@ -34,13 +34,13 @@ func throwsErrors(_ *application.Application) error {
 
 func main() {
 	slowApp := application.NewApplication("Slow App", helloWorldFetcher)
-	slowApp.PollRate = time.Second * 30
+	slowApp.SetPollRateByRateLimit(2, time.Minute)
 
 	fastApp := application.NewApplication("Fast App", helloWorldFetcher)
-	fastApp.PollRate = time.Second * 2
+	fastApp.SetPollRateByRateLimit(12, time.Minute)
 
 	inconsistentApp := application.NewApplication("Inconsistent App", randomlySkip)
-	inconsistentApp.PollRate = time.Second * 5
+	inconsistentApp.SetPollRateByRateLimit(5, time.Second)
 
 	erroringApp := application.NewApplication("Throws Errors", throwsErrors)
 
