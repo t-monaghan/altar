@@ -16,9 +16,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/t-monaghan/altar/application"
+	"github.com/t-monaghan/altar/utils"
 )
 
 // MinLoopTime is the minimum time the broker will spend between iterations of fetching and pushing updates.
@@ -29,6 +31,20 @@ const defaultWebPort = ":8080"
 
 // DefaultAdminPort is the port the broker listens on for commands.
 const DefaultAdminPort = "25827"
+
+// AltarAdminRequest defines the expected request type for the altar admin server.
+type AltarAdminRequest struct {
+	Command AltarAdminCommand `json:"command"`
+	Data    string            `json:"data,omitempty"`
+}
+
+// AltarAdminCommand defines the commands the altar admin server recognises.
+type AltarAdminCommand string
+
+const (
+	// AdminShutdownCommand is the command recognised by altar's admin server as a call to shutdown.
+	AdminShutdownCommand AltarAdminCommand = "DOWN"
+)
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
@@ -79,6 +95,10 @@ func NewBroker(
 
 // Start executes the broker's routine.
 func (b *HTTPBroker) Start() {
+	if b.Debug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
+
 	err := b.sendConfig()
 	if err != nil {
 		slog.Error("error setting up initial awtrix configuration", "error", err)
@@ -93,32 +113,11 @@ func (b *HTTPBroker) Start() {
 	}
 
 	go func() {
-		for {
-			startTime := time.Now()
-
-			for _, app := range b.applications {
-				err := app.Fetch()
-				if err != nil {
-					slog.Error("error encountered fetching for app", "app", app.Name, "error", err)
-				}
-			}
-
-			for _, app := range b.applications {
-				err := b.push(app)
-				if err != nil {
-					slog.Error("error encountered pushing to awtrix device", "app", app.Name, "error", err)
-				}
-			}
-
-			duration := time.Since(startTime)
-			if duration < MinLoopTime {
-				time.Sleep(MinLoopTime - duration)
-			}
-		}
+		fetchAndPushApps(b)
 	}()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/shutdown", shutdownHandler)
+	mux.HandleFunc("/admin/command", commandHandler)
 
 	adminPort := DefaultAdminPort
 
@@ -135,6 +134,54 @@ func (b *HTTPBroker) Start() {
 	}
 
 	log.Fatal(adminServer.ListenAndServe())
+}
+
+func fetchAndPushApps(brkr *HTTPBroker) {
+	for {
+		startTime := time.Now()
+
+		var quickestPoll = time.Hour * 9000
+
+		var fetchGroup sync.WaitGroup
+
+		var pollMx sync.Mutex
+
+		for _, app := range brkr.applications {
+			fetchGroup.Add(1)
+
+			go func(app *application.Application) {
+				defer fetchGroup.Done()
+
+				err := app.Fetch()
+				if err != nil {
+					slog.Error("error encountered in fetching", "app", app.Name, "error", err)
+					app.PushOnNextCall = false
+				}
+
+				pollMx.Lock()
+				if app.PollRate < quickestPoll {
+					quickestPoll = app.PollRate
+				}
+				pollMx.Unlock()
+			}(app)
+		}
+
+		fetchGroup.Wait()
+
+		// TODO: decide if push should be sent as batch request, or similarly to above with goroutines
+		// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#sending-multiple-custom-apps-simultaneously
+		for _, app := range brkr.applications {
+			err := brkr.push(app)
+			if err != nil {
+				slog.Error("error encountered pushing to awtrix device", "app", app.Name, "error", err)
+			}
+		}
+
+		duration := time.Since(startTime)
+		if duration < quickestPoll {
+			time.Sleep(quickestPoll - duration)
+		}
+	}
 }
 
 func (b *HTTPBroker) sendConfig() error {
@@ -171,10 +218,22 @@ func (b *HTTPBroker) sendConfig() error {
 		}
 	}()
 
+	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
+		slog.Error("awtrix has responded to configuration request with non-2xx http response", "http-status", resp.Status)
+	}
+
 	return err
 }
 
 func (b *HTTPBroker) push(app *application.Application) error {
+	if !app.ShouldPushToAwtrix() {
+		slog.Debug("skipping push for app", "app", app.Name)
+
+		return nil
+	}
+
+	app.PushOnNextCall = false
+
 	jsonData, err := json.Marshal(app.GetData())
 	if err != nil {
 		return fmt.Errorf("failed to marshal %v data into json: %w", app.Name, err)
@@ -200,22 +259,28 @@ func (b *HTTPBroker) push(app *application.Application) error {
 	if err != nil {
 		return fmt.Errorf("failed to perform post request for %v: %w", app.Name, err)
 	}
-	// TODO: investigate why no error is printed when request has no response
+
 	defer func() {
 		closeErr := resp.Body.Close()
 		if err == nil {
-			err = closeErr
+			err = fmt.Errorf("failed to close body of app push request: %w", closeErr)
 		}
 	}()
+
+	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
+		slog.Error("awtrix has responded to app update with non-2xx http response",
+			"http-status", resp.Status, "app", app.Name)
+	}
+
+	slog.Debug("pushed", "app", app.Name)
 
 	return err
 }
 
-// TODO: have one general handler listen to four letter/worded commands.
-func shutdownHandler(w http.ResponseWriter, req *http.Request) {
+func commandHandler(wrtr http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusInternalServerError)
+		http.Error(wrtr, "Error reading request body", http.StatusInternalServerError)
 
 		return
 	}
@@ -225,9 +290,32 @@ func shutdownHandler(w http.ResponseWriter, req *http.Request) {
 		slog.Error("error in shutdown handler", "error", err)
 	}
 
-	if string(body) == "confirm" && req.Method == http.MethodPost {
-		slog.Info("shutdown request received - shutting down")
-		os.Exit(1)
+	if req.Method != http.MethodPost {
+		wrtr.WriteHeader(http.StatusBadRequest)
+		_, _ = wrtr.Write([]byte("request to admin commands did not use the POST method"))
+
+		return
+	}
+
+	requestCommand := &AltarAdminRequest{}
+
+	err = json.Unmarshal(body, requestCommand)
+	if err != nil {
+		slog.Error("admin server failed to unmarshal command request")
+		wrtr.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	switch requestCommand.Command {
+	case AdminShutdownCommand:
+		slog.Info("admin server received shutdown command - shutting down")
+		os.Exit(0)
+	default:
+		wrtr.WriteHeader(http.StatusBadRequest)
+		_, _ = wrtr.Write([]byte("admin server did not recognise the command: '" + string(body) + "'"))
+
+		return
 	}
 }
 
@@ -255,6 +343,11 @@ func (b *HTTPBroker) rebootAwtrix() error {
 			err = closeErr
 		}
 	}()
+
+	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
+		slog.Error("awtrix has responded to reboot command with non-2xx http response",
+			"http-status", resp.Status)
+	}
 
 	return err
 }

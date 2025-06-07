@@ -19,13 +19,7 @@ import (
 
 var client = http.Client{Timeout: 5 * time.Second}
 
-func helloWorldFetcher(a *application.AppData) error {
-	a.Text = "Hello, World!"
-
-	return nil
-}
-
-func rainChanceFetcher(a *application.AppData) error {
+func rainChanceFetcher(a *application.Application) error {
 	// TODO: query if currently raining
 	req, err := http.NewRequest(http.MethodGet, "https://api.open-meteo.com/v1/forecast", nil)
 	if err != nil {
@@ -79,23 +73,22 @@ func rainChanceFetcher(a *application.AppData) error {
 	if foundRain {
 		untilNextRain := nextRain.Time.Sub(time.Now())
 		if untilNextRain < time.Hour*24 {
-			a.Text = fmt.Sprintf("%v%% chance of rain in %v hours", nextRain.PrecipitationProbability, untilNextRain.Round(time.Hour).Hours())
+			a.Data.Text = fmt.Sprintf("%v%% chance of rain in %v hours", nextRain.PrecipitationProbability, untilNextRain.Round(time.Hour).Hours())
 		} else if untilNextRain < time.Hour*24*2 {
-			a.Text = fmt.Sprintf("%v%% chance of rain tomorrow", nextRain.PrecipitationProbability)
+			a.Data.Text = fmt.Sprintf("%v%% chance of rain tomorrow", nextRain.PrecipitationProbability)
 		} else if untilNextRain < time.Hour*24*7 {
-			a.Text = fmt.Sprintf("%v%% chance of rain in %v days", nextRain.PrecipitationProbability, int(untilNextRain.Hours()/24))
+			a.Data.Text = fmt.Sprintf("%v%% chance of rain in %v days", nextRain.PrecipitationProbability, int(untilNextRain.Hours()/24))
 		}
 	} else {
-		a.Text = "sunny week"
+		a.Data.Text = "sunny week"
 	}
 
 	return nil
 }
 
 func main() {
-	helloWorld := application.NewApplication("Hello World", helloWorldFetcher)
 	weatherApp := application.NewApplication("Rain Forecast", rainChanceFetcher)
-	appList := []*application.Application{&helloWorld, &weatherApp}
+	appList := []*application.Application{&weatherApp}
 	// TODO: read ip from config (viper?)
 	// or allow dynamic address via HTTP request
 	broker, err := broker.NewBroker(
@@ -103,7 +96,7 @@ func main() {
 		appList,
 		broker.DisableAllDefaultApps(),
 	)
-	// TODO: read debug from flag (cobra/viper?)
+
 	broker.Debug = true
 
 	if err != nil {
@@ -113,5 +106,3 @@ func main() {
 
 	broker.Start()
 }
-
-// TODO: have a server spawn and listen to "/kill" to allow rolling a new broker build

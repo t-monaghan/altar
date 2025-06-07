@@ -17,7 +17,7 @@ import (
 func Test_InvalidBrokerInstantiation(t *testing.T) {
 	t.Parallel()
 
-	toyApp := application.NewApplication("test app", func(*application.AppData) error { return nil })
+	toyApp := application.NewApplication("test app", func(*application.Application) error { return nil })
 	toyAppList := []*application.Application{&toyApp}
 
 	cases := []struct {
@@ -50,8 +50,8 @@ var empty200Response = &http.Response{
 func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	appMsg := "Hello, World!"
 	appName := "test app"
-	toyApp := application.NewApplication(appName, func(a *application.AppData) error {
-		a.Text = appMsg
+	toyApp := application.NewApplication(appName, func(a *application.Application) error {
+		a.Data.Text = appMsg
 
 		return nil
 	})
@@ -106,8 +106,8 @@ func Test_BrokerSetsConfig(t *testing.T) {
 
 	appMsg := "Hello, World!"
 	appName := "test app"
-	toyApp := application.NewApplication(appName, func(a *application.AppData) error {
-		a.Text = appMsg
+	toyApp := application.NewApplication(appName, func(a *application.Application) error {
+		a.Data.Text = appMsg
 
 		return nil
 	})
@@ -174,7 +174,7 @@ func shutdownBroker(t *testing.T, brkr *broker.HTTPBroker) {
 		t.Context(),
 		http.MethodPost,
 		"http://localhost:"+brkr.AdminPort,
-		bytes.NewBufferString("confirm"),
+		bytes.NewBufferString(string(broker.AdminShutdownCommand)),
 	)
 
 	if err != nil {
