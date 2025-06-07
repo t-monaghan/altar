@@ -78,8 +78,8 @@ func NewApplication(name string, fetcher func(*Application) error) Application {
 
 // SetPollRateByRateLimit is a helper function that sets the application's poll rate
 // when given the count of requests per duration.
-func (a *Application) SetPollRateByRateLimit(requests int, perDuration time.Duration) {
-	a.PollRate = time.Duration(requests / int(perDuration))
+func (a *Application) SetPollRateByRateLimit(requests uint32, duration time.Duration) {
+	a.PollRate = duration / time.Duration(requests)
 }
 
 // ShouldFetch defines whether an application should be fetched again according to it's poll rate.
