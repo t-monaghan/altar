@@ -173,7 +173,7 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 		for _, app := range brkr.applications {
 			err := brkr.push(app)
 			if err != nil {
-				slog.Error("error pushing %v: %v", app.Name, err)
+				slog.Error("error encountered pushing to awtrix device", "app", app.Name, "error", err)
 			}
 		}
 
