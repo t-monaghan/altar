@@ -10,8 +10,6 @@ import (
 )
 
 // AppData is Altar's presentation of a custom Awtrix application.
-//
-//nolint:tagliatelle
 type AppData struct {
 	// includes all fields from docs linked, except for "draw" and "effect settings"
 	// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#json-properties

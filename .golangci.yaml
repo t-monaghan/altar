@@ -6,6 +6,7 @@ linters:
     - depguard
     - godox
     - exhaustruct
+    - tagliatelle
   exclusions:
     paths:
       - cmd/request_logger/*

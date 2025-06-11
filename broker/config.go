@@ -1,8 +1,6 @@
 package broker
 
 // AwtrixConfig defines the configuration Altar can perform on an Awtrix device
-//
-//nolint:tagliatelle
 type AwtrixConfig struct {
 	// https://blueforcer.github.io/awtrix3/#/api?id=json-properties-1
 	TimeAppEnabled     *bool `json:"TIM,omitempty"`
@@ -77,4 +75,3 @@ func DisableDefaultBatteryApp() func(*AwtrixConfig) {
 		cfg.BatteryAppEnabled = &disable
 	}
 }
-
