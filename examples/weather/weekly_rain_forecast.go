@@ -24,7 +24,7 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	req, err := http.NewRequestWithContext(context.Background(),
 		http.MethodGet, "https://api.open-meteo.com/v1/forecast", nil)
 	if err != nil {
-		return HourlyForecast{}, false, fmt.Errorf("error creating request for rain forecast app: %w", err)
+		return HourlyForecast{}, false, fmt.Errorf("error creating request for weekly rain forecast: %w", err)
 	}
 
 	q := req.URL.Query()
@@ -36,7 +36,7 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 
 	response, err := client.Do(req)
 	if err != nil {
-		return HourlyForecast{}, false, fmt.Errorf("error performing request against rain forecast app: %w", err)
+		return HourlyForecast{}, false, fmt.Errorf("error requesting weekly rain forecast: %w", err)
 	}
 
 	defer func() {
@@ -48,14 +48,14 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return HourlyForecast{}, false, fmt.Errorf("error reading response of rain forecast app: %w", err)
+		return HourlyForecast{}, false, fmt.Errorf("error reading response of rain forecast: %w", err)
 	}
 
 	forecast := &forecastResponse{}
 	err = json.Unmarshal(body, forecast)
 
 	if err != nil {
-		return HourlyForecast{}, false, fmt.Errorf("failed to unmarshal weather response: %w", err)
+		return HourlyForecast{}, false, fmt.Errorf("failed to unmarshal rain forecast: %w", err)
 	}
 
 	if len(forecast.Hourly.PrecipitationProbability) == 0 {
@@ -81,40 +81,6 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	}
 
 	return nextRain, foundRain, nil
-}
-
-type precipitationResponse struct {
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	Timezone    string  `json:"timezone"`
-	CurrentData struct {
-		Time          string  `json:"time"`
-		Interval      int     `json:"interval"`
-		Precipitation float64 `json:"precipitation"`
-	} `json:"current"`
-	CurrentUnits struct {
-		Time          string `json:"time"`
-		Interval      string `json:"interval"`
-		Precipitation string `json:"precipitation"`
-	} `json:"current_units"`
-}
-
-// ErrNoPrecipitationData is returned when the weather api returns no precipitation data.
-var ErrNoPrecipitationData = errors.New("precipitation data not found in JSON response")
-
-func extractPrecipitation(jsonData string) (float64, error) {
-	var weatherData precipitationResponse
-
-	err := json.Unmarshal([]byte(jsonData), &weatherData)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse JSON: %w", err)
-	}
-
-	if weatherData.CurrentData.Precipitation == 0 && (len(jsonData) == 0 || jsonData == "{}") {
-		return 0, ErrNoPrecipitationData
-	}
-
-	return weatherData.CurrentData.Precipitation, nil
 }
 
 type forecastResponse struct {

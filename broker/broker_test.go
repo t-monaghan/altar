@@ -17,7 +17,10 @@ import (
 func Test_InvalidBrokerInstantiation(t *testing.T) {
 	t.Parallel()
 
-	toyApp := application.NewApplication("test app", func(*application.Application, *http.Client) error { return nil })
+	toyApp := application.NewApplication("test app",
+		func(*application.Application, *http.Client) (application.AwtrixConfig, error) {
+			return application.AwtrixConfig{}, nil
+		})
 	toyAppList := []*application.Application{&toyApp}
 
 	cases := []struct {
@@ -50,11 +53,12 @@ var empty200Response = &http.Response{
 func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	appMsg := "Hello, World!"
 	appName := "test app"
-	toyApp := application.NewApplication(appName, func(a *application.Application, _ *http.Client) error {
-		a.Data.Text = appMsg
+	toyApp := application.NewApplication(appName,
+		func(a *application.Application, _ *http.Client) (application.AwtrixConfig, error) {
+			a.Data.Text = appMsg
 
-		return nil
-	})
+			return application.AwtrixConfig{}, nil
+		})
 	toyAppList := []*application.Application{&toyApp}
 
 	t.Run("broker executes handler requests", func(t *testing.T) {
@@ -101,26 +105,28 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	})
 }
 
+//nolint:funlen
 func Test_BrokerSetsConfig(t *testing.T) {
 	t.Parallel()
 
 	appMsg := "Hello, World!"
 	appName := "test app"
-	toyApp := application.NewApplication(appName, func(a *application.Application, _ *http.Client) error {
-		a.Data.Text = appMsg
+	toyApp := application.NewApplication(appName,
+		func(a *application.Application, _ *http.Client) (application.AwtrixConfig, error) {
+			a.Data.Text = appMsg
 
-		return nil
-	})
+			return application.AwtrixConfig{}, nil
+		})
 	toyAppList := []*application.Application{&toyApp}
 
 	cases := []struct {
 		description string
-		configFn    func() func(*broker.AwtrixConfig)
+		configFn    func() func(*application.AwtrixConfig)
 		expected    string
 		port        string
 	}{
-		{"some description", broker.DisableDefaultTimeApp, "{\"TIM\":false}", "43324"},
-		{"disable all default apps", broker.DisableAllDefaultApps,
+		{"some description", application.DisableDefaultTimeApp, "{\"TIM\":false}", "43324"},
+		{"disable all default apps", application.DisableAllDefaultApps,
 			"{\"TIM\":false,\"WD\":false,\"DAT\":false,\"HUM\":false,\"TEMP\":false,\"BAT\":false}", "43325"},
 	}
 	for _, testCase := range cases {

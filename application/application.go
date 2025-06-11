@@ -49,13 +49,22 @@ type AppData struct {
 	ScrollSpeed  *int     `json:"scrollSpeed,omitempty"`
 	Effect       string   `json:"effect,omitempty"`
 	Save         *bool    `json:"save,omitempty"`
-	Overlay      string   `json:"overlay,omitempty"`
+	Overlay      Overlay  `json:"overlay,omitempty"`
 }
+
+// Overlay represents the enumarable options for Awtrix app and global overlays.
+type Overlay string
+
+//nolint:revive
+const (
+	Rain  Overlay = "rain"
+	Clear Overlay = "clear"
+)
 
 // Application is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
 type Application struct {
 	Name           string
-	fetcher        func(*Application, *http.Client) error
+	fetcher        func(*Application, *http.Client) (AwtrixConfig, error)
 	Data           AppData
 	PollRate       time.Duration
 	lastPolled     time.Time
@@ -66,7 +75,7 @@ type Application struct {
 const defaultPollRate = time.Second * 10
 
 // NewApplication Instantiates a new Altar application.
-func NewApplication(name string, fetcher func(*Application, *http.Client) error) Application {
+func NewApplication(name string, fetcher func(*Application, *http.Client) (AwtrixConfig, error)) Application {
 	return Application{
 		Name:           name,
 		fetcher:        fetcher,
@@ -93,12 +102,12 @@ func (a *Application) ShouldPushToAwtrix() bool {
 }
 
 // Fetch uses the application's fetcher to query for new data.
-func (a *Application) Fetch(client *http.Client) error {
+func (a *Application) Fetch(client *http.Client) (AwtrixConfig, error) {
 	if !a.ShouldFetch() {
 		slog.Debug("skipping app fetch", "app", a.Name,
 			"seconds-since-last-fetch", time.Since(a.lastPolled).Seconds(), "poll-rate-seconds", a.PollRate.Seconds())
 
-		return nil
+		return AwtrixConfig{}, nil
 	}
 
 	slog.Debug("fetching for app", "app", a.Name,
