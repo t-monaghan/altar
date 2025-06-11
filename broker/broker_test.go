@@ -2,10 +2,12 @@ package broker_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -105,7 +107,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	})
 }
 
-//nolint:funlen
+//nolint:gocognit,cyclop,funlen
 func Test_BrokerSetsConfig(t *testing.T) {
 	t.Parallel()
 
@@ -133,6 +135,9 @@ func Test_BrokerSetsConfig(t *testing.T) {
 		t.Run(testCase.description, func(t *testing.T) {
 			t.Parallel()
 
+			configRequestReceived := make(chan struct{})
+			configRequestCorrect := make(chan bool, 1)
+
 			brkr, err := broker.NewBroker("127.0.0.1", toyAppList, testCase.configFn())
 			if err != nil {
 				t.Fatalf("should not throw error creating broker\n\treceived error: %v", err)
@@ -140,33 +145,54 @@ func Test_BrokerSetsConfig(t *testing.T) {
 
 			brkr.AdminPort = testCase.port
 
+			var settingsRequestCount int32
+
 			brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
-				if request.URL.Path != "/api/settings" {
-					return empty200Response, nil
-				}
+				// we only care about the first settings request (initial config)
+				if request.URL.Path == "/api/settings" && atomic.AddInt32(&settingsRequestCount, 1) == 1 {
+					body, err := io.ReadAll(request.Body)
+					if err != nil {
+						t.Fatalf("failed reading body of broker request\n\terror: %v", err)
+					}
 
-				body, err := io.ReadAll(request.Body)
-				if err != nil {
-					t.Fatalf("failed reading body of broker request\n\terror: %v", err)
-				}
+					configRequestCorrect <- string(body) == testCase.expected
 
-				if string(body) != testCase.expected {
-					t.Fatalf(
-						"broker sent request with incorrect body\n\texpected: %v\n\treceived: %v",
-						testCase.expected,
-						string(body))
+					close(configRequestReceived)
+
+					if string(body) != testCase.expected {
+						t.Logf(
+							"broker sent request with incorrect body\n\texpected: %v\n\treceived: %v",
+							testCase.expected,
+							string(body))
+					}
 				}
 
 				return empty200Response, nil
 			})
+
+			_, cancel := context.WithCancel(t.Context())
 			go func() {
+				defer cancel()
+				defer func() {
+					if r := recover(); r != nil {
+						t.Logf("Broker panicked: %v", r)
+					}
+				}()
+
 				brkr.Start()
 			}()
 
-			// TODO: how can I have a successful request propagate a "pass" message from the goroutine?
-			// OR is the goroutine the wrong pattern here?
-			time.Sleep(time.Second)
+			select {
+			case <-configRequestReceived:
+				result := <-configRequestCorrect
+				if !result {
+					t.Fatalf("broker sent incorrect config request body")
+				}
+			case <-time.After(3 * time.Second):
+				t.Fatalf("timed out waiting for config request")
+			}
 
+			cancel()
 			shutdownBroker(t, brkr)
 		})
 	}
