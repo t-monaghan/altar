@@ -152,7 +152,7 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 			go func(app *application.Application) {
 				defer fetchGroup.Done()
 
-				cfg, err := app.Fetch(brkr.Client)
+				err := app.Fetch(brkr.Client)
 				if err != nil {
 					slog.Error("error encountered in fetching", "app", app.Name, "error", err)
 					app.PushOnNextCall = false
@@ -160,7 +160,7 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 
 				mutateConfig.Lock()
 				if app.PollRate < quickestPoll {
-					brkr.DisplayConfig = mergeConfig(brkr.DisplayConfig, cfg)
+					brkr.DisplayConfig = mergeConfig(brkr.DisplayConfig, app.GlobalConfig)
 					quickestPoll = app.PollRate
 				}
 				mutateConfig.Unlock()

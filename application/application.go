@@ -64,8 +64,9 @@ const (
 // Application is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
 type Application struct {
 	Name           string
-	fetcher        func(*Application, *http.Client) (AwtrixConfig, error)
+	fetcher        func(*Application, *http.Client) error
 	Data           AppData
+	GlobalConfig   AwtrixConfig
 	PollRate       time.Duration
 	lastPolled     time.Time
 	PushOnNextCall bool
@@ -75,11 +76,12 @@ type Application struct {
 const defaultPollRate = time.Second * 10
 
 // NewApplication Instantiates a new Altar application.
-func NewApplication(name string, fetcher func(*Application, *http.Client) (AwtrixConfig, error)) Application {
+func NewApplication(name string, fetcher func(*Application, *http.Client) error) Application {
 	return Application{
 		Name:           name,
 		fetcher:        fetcher,
 		Data:           AppData{},
+		GlobalConfig:   AwtrixConfig{},
 		PollRate:       defaultPollRate,
 		PushOnNextCall: false,
 	}
@@ -102,12 +104,12 @@ func (a *Application) ShouldPushToAwtrix() bool {
 }
 
 // Fetch uses the application's fetcher to query for new data.
-func (a *Application) Fetch(client *http.Client) (AwtrixConfig, error) {
+func (a *Application) Fetch(client *http.Client) error {
 	if !a.ShouldFetch() {
 		slog.Debug("skipping app fetch", "app", a.Name,
 			"seconds-since-last-fetch", time.Since(a.lastPolled).Seconds(), "poll-rate-seconds", a.PollRate.Seconds())
 
-		return AwtrixConfig{}, nil
+		return nil
 	}
 
 	slog.Debug("fetching for app", "app", a.Name,

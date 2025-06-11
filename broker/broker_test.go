@@ -18,8 +18,8 @@ func Test_InvalidBrokerInstantiation(t *testing.T) {
 	t.Parallel()
 
 	toyApp := application.NewApplication("test app",
-		func(*application.Application, *http.Client) (application.AwtrixConfig, error) {
-			return application.AwtrixConfig{}, nil
+		func(_ *application.Application, _ *http.Client) error {
+			return nil
 		})
 	toyAppList := []*application.Application{&toyApp}
 
@@ -54,10 +54,10 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	appMsg := "Hello, World!"
 	appName := "test app"
 	toyApp := application.NewApplication(appName,
-		func(a *application.Application, _ *http.Client) (application.AwtrixConfig, error) {
+		func(a *application.Application, _ *http.Client) error {
 			a.Data.Text = appMsg
 
-			return application.AwtrixConfig{}, nil
+			return nil
 		})
 	toyAppList := []*application.Application{&toyApp}
 
@@ -112,10 +112,10 @@ func Test_BrokerSetsConfig(t *testing.T) {
 	appMsg := "Hello, World!"
 	appName := "test app"
 	toyApp := application.NewApplication(appName,
-		func(a *application.Application, _ *http.Client) (application.AwtrixConfig, error) {
+		func(a *application.Application, _ *http.Client) error {
 			a.Data.Text = appMsg
 
-			return application.AwtrixConfig{}, nil
+			return nil
 		})
 	toyAppList := []*application.Application{&toyApp}
 
