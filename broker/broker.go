@@ -152,7 +152,7 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 			go func(app *application.Application) {
 				defer fetchGroup.Done()
 
-				err := app.Fetch()
+				err := app.Fetch(brkr.Client)
 				if err != nil {
 					slog.Error("error encountered in fetching", "app", app.Name, "error", err)
 					app.PushOnNextCall = false
