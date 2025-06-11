@@ -2,10 +2,12 @@ package broker_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,7 +19,10 @@ import (
 func Test_InvalidBrokerInstantiation(t *testing.T) {
 	t.Parallel()
 
-	toyApp := application.NewApplication("test app", func(*application.Application) error { return nil })
+	toyApp := application.NewApplication("test app",
+		func(_ *application.Application, _ *http.Client) error {
+			return nil
+		})
 	toyAppList := []*application.Application{&toyApp}
 
 	cases := []struct {
@@ -50,11 +55,12 @@ var empty200Response = &http.Response{
 func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	appMsg := "Hello, World!"
 	appName := "test app"
-	toyApp := application.NewApplication(appName, func(a *application.Application) error {
-		a.Data.Text = appMsg
+	toyApp := application.NewApplication(appName,
+		func(a *application.Application, _ *http.Client) error {
+			a.Data.Text = appMsg
 
-		return nil
-	})
+			return nil
+		})
 	toyAppList := []*application.Application{&toyApp}
 
 	t.Run("broker executes handler requests", func(t *testing.T) {
@@ -101,31 +107,36 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	})
 }
 
+//nolint:gocognit,cyclop,funlen
 func Test_BrokerSetsConfig(t *testing.T) {
 	t.Parallel()
 
 	appMsg := "Hello, World!"
 	appName := "test app"
-	toyApp := application.NewApplication(appName, func(a *application.Application) error {
-		a.Data.Text = appMsg
+	toyApp := application.NewApplication(appName,
+		func(a *application.Application, _ *http.Client) error {
+			a.Data.Text = appMsg
 
-		return nil
-	})
+			return nil
+		})
 	toyAppList := []*application.Application{&toyApp}
 
 	cases := []struct {
 		description string
-		configFn    func() func(*broker.AwtrixConfig)
+		configFn    func() func(*application.AwtrixConfig)
 		expected    string
 		port        string
 	}{
-		{"some description", broker.DisableDefaultTimeApp, "{\"TIM\":false}", "43324"},
-		{"disable all default apps", broker.DisableAllDefaultApps,
+		{"some description", application.DisableDefaultTimeApp, "{\"TIM\":false}", "43324"},
+		{"disable all default apps", application.DisableAllDefaultApps,
 			"{\"TIM\":false,\"WD\":false,\"DAT\":false,\"HUM\":false,\"TEMP\":false,\"BAT\":false}", "43325"},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.description, func(t *testing.T) {
 			t.Parallel()
+
+			configRequestReceived := make(chan struct{})
+			configRequestCorrect := make(chan bool, 1)
 
 			brkr, err := broker.NewBroker("127.0.0.1", toyAppList, testCase.configFn())
 			if err != nil {
@@ -134,33 +145,54 @@ func Test_BrokerSetsConfig(t *testing.T) {
 
 			brkr.AdminPort = testCase.port
 
+			var settingsRequestCount int32
+
 			brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
-				if request.URL.Path != "/api/settings" {
-					return empty200Response, nil
-				}
+				// we only care about the first settings request (initial config)
+				if request.URL.Path == "/api/settings" && atomic.AddInt32(&settingsRequestCount, 1) == 1 {
+					body, err := io.ReadAll(request.Body)
+					if err != nil {
+						t.Fatalf("failed reading body of broker request\n\terror: %v", err)
+					}
 
-				body, err := io.ReadAll(request.Body)
-				if err != nil {
-					t.Fatalf("failed reading body of broker request\n\terror: %v", err)
-				}
+					configRequestCorrect <- string(body) == testCase.expected
 
-				if string(body) != testCase.expected {
-					t.Fatalf(
-						"broker sent request with incorrect body\n\texpected: %v\n\treceived: %v",
-						testCase.expected,
-						string(body))
+					close(configRequestReceived)
+
+					if string(body) != testCase.expected {
+						t.Logf(
+							"broker sent request with incorrect body\n\texpected: %v\n\treceived: %v",
+							testCase.expected,
+							string(body))
+					}
 				}
 
 				return empty200Response, nil
 			})
+
+			_, cancel := context.WithCancel(t.Context())
 			go func() {
+				defer cancel()
+				defer func() {
+					if r := recover(); r != nil {
+						t.Logf("Broker panicked: %v", r)
+					}
+				}()
+
 				brkr.Start()
 			}()
 
-			// TODO: how can I have a successful request propagate a "pass" message from the goroutine?
-			// OR is the goroutine the wrong pattern here?
-			time.Sleep(time.Second)
+			select {
+			case <-configRequestReceived:
+				result := <-configRequestCorrect
+				if !result {
+					t.Fatalf("broker sent incorrect config request body")
+				}
+			case <-time.After(3 * time.Second):
+				t.Fatalf("timed out waiting for config request")
+			}
 
+			cancel()
 			shutdownBroker(t, brkr)
 		})
 	}

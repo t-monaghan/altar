@@ -52,7 +52,7 @@ type HTTPBroker struct {
 	clockAddress  string
 	Client        *http.Client
 	Debug         bool
-	DisplayConfig AwtrixConfig
+	DisplayConfig application.AwtrixConfig
 	AdminPort     string
 }
 
@@ -66,7 +66,7 @@ var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not v
 func NewBroker(
 	addr string,
 	applications []*application.Application,
-	options ...func(*AwtrixConfig),
+	options ...func(*application.AwtrixConfig),
 ) (*HTTPBroker, error) {
 	if len(applications) == 0 {
 		return nil, ErrBrokerHasNoApplications
@@ -77,7 +77,7 @@ func NewBroker(
 		return nil, ErrIPNotValid
 	}
 
-	cfg := AwtrixConfig{}
+	cfg := application.AwtrixConfig{}
 	for _, option := range options {
 		option(&cfg)
 	}
@@ -144,7 +144,7 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 
 		var fetchGroup sync.WaitGroup
 
-		var pollMx sync.Mutex
+		var mutateConfig sync.Mutex
 
 		for _, app := range brkr.applications {
 			fetchGroup.Add(1)
@@ -152,24 +152,31 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 			go func(app *application.Application) {
 				defer fetchGroup.Done()
 
-				err := app.Fetch()
+				err := app.Fetch(brkr.Client)
 				if err != nil {
 					slog.Error("error encountered in fetching", "app", app.Name, "error", err)
 					app.PushOnNextCall = false
 				}
 
-				pollMx.Lock()
+				mutateConfig.Lock()
 				if app.PollRate < quickestPoll {
+					brkr.DisplayConfig = mergeConfig(brkr.DisplayConfig, app.GlobalConfig)
 					quickestPoll = app.PollRate
 				}
-				pollMx.Unlock()
+				mutateConfig.Unlock()
 			}(app)
 		}
 
 		fetchGroup.Wait()
 
+		err := brkr.sendConfig()
+		if err != nil {
+			slog.Error("error changing awtrix settings", "error", err)
+		}
+
 		// TODO: decide if push should be sent as batch request, or similarly to above with goroutines
 		// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#sending-multiple-custom-apps-simultaneously
+		// TODO: decide if apps should be pushed as soon as they're fetched
 		for _, app := range brkr.applications {
 			err := brkr.push(app)
 			if err != nil {
@@ -350,4 +357,16 @@ func (b *HTTPBroker) rebootAwtrix() error {
 	}
 
 	return err
+}
+
+// mergeConfig will only merge options considered worth changing at runtime.
+func mergeConfig(left application.AwtrixConfig, right application.AwtrixConfig) application.AwtrixConfig {
+	keep := application.AwtrixConfig{}
+	if right.Overlay != "" {
+		keep.Overlay = right.Overlay
+	} else if left.Overlay != "" {
+		keep.Overlay = left.Overlay
+	}
+
+	return keep
 }
