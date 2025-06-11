@@ -24,8 +24,8 @@ package main
 
 import "github.com/t-monaghan/altar/application"
 
-func helloWorldFetcher(a *application.AppData) error {
-	a.Text = "Hello, World!"
+func helloWorldFetcher(app *application.Application, _ *http.Client) error {
+	app.Data.Text = "Hello, World!"
 	return nil
 }
 
