@@ -11,11 +11,14 @@ import (
 	"time"
 )
 
-// HourlyForecast represents a single hourly forecast entry with parsed time
+// HourlyForecast represents a single hourly forecast entry with parsed time.
 type HourlyForecast struct {
 	Time                     time.Time
 	PrecipitationProbability int // percentage
 }
+
+// ErrEmptyResponse describes when the weather api returns an empty body.
+var ErrEmptyResponse = errors.New("did not receive a response body from weather api")
 
 func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	req, err := http.NewRequestWithContext(context.Background(),
@@ -35,7 +38,13 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	if err != nil {
 		return HourlyForecast{}, false, fmt.Errorf("error performing request against rain forecast app: %w", err)
 	}
-	defer response.Body.Close()
+
+	defer func() {
+		closeErr := response.Body.Close()
+		if closeErr != nil {
+			err = fmt.Errorf("error closing response body: %w", closeErr)
+		}
+	}()
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -50,8 +59,9 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	}
 
 	if len(forecast.Hourly.PrecipitationProbability) == 0 {
-		return HourlyForecast{}, false, fmt.Errorf("did not receive a response body from weather api")
+		return HourlyForecast{}, false, ErrEmptyResponse
 	}
+
 	hourly := forecast.getHourlyForecast()
 
 	slices.SortFunc(hourly, func(a, b HourlyForecast) int {
@@ -60,13 +70,16 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 
 	nextRain := HourlyForecast{}
 	foundRain := false
+
 	for _, hour := range hourly {
 		if hour.PrecipitationProbability > 0 {
 			nextRain = hour
 			foundRain = true
+
 			break
 		}
 	}
+
 	return nextRain, foundRain, nil
 }
 
@@ -86,7 +99,10 @@ type precipitationResponse struct {
 	} `json:"current_units"`
 }
 
-func ExtractPrecipitation(jsonData string) (float64, error) {
+// ErrNoPrecipitationData is returned when the weather api returns no precipitation data.
+var ErrNoPrecipitationData = errors.New("precipitation data not found in JSON response")
+
+func extractPrecipitation(jsonData string) (float64, error) {
 	var weatherData precipitationResponse
 
 	err := json.Unmarshal([]byte(jsonData), &weatherData)
@@ -95,7 +111,7 @@ func ExtractPrecipitation(jsonData string) (float64, error) {
 	}
 
 	if weatherData.CurrentData.Precipitation == 0 && (len(jsonData) == 0 || jsonData == "{}") {
-		return 0, errors.New("precipitation data not found in JSON response")
+		return 0, ErrNoPrecipitationData
 	}
 
 	return weatherData.CurrentData.Precipitation, nil
@@ -121,7 +137,7 @@ type hourlyUnits struct {
 func (wr *forecastResponse) getHourlyForecast() []HourlyForecast {
 	result := make([]HourlyForecast, len(wr.Hourly.Time))
 
-	for i := 0; i < len(wr.Hourly.Time); i++ {
+	for i := range wr.Hourly.Time {
 		t, _ := time.Parse("2006-01-02T15:04", wr.Hourly.Time[i])
 
 		result[i] = HourlyForecast{
@@ -133,7 +149,8 @@ func (wr *forecastResponse) getHourlyForecast() []HourlyForecast {
 	return result
 }
 
-// hourlyForecastResponse is defined as we transform the response struct containing lists into a list containing the structs
+// hourlyForecastResponse is defined as we transform the response struct
+// containing lists into a list containing the structs.
 type hourlyForecastResponse struct {
 	Time                     []string `json:"time"`                      // ISO8601 time strings
 	PrecipitationProbability []int    `json:"precipitation_probability"` // percentage values

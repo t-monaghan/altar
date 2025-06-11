@@ -1,3 +1,4 @@
+// Package weather defines some example applications that display weather information and forecasting.
 package weather
 
 import (
@@ -7,7 +8,8 @@ import (
 	"github.com/t-monaghan/altar/application"
 )
 
-func RainChanceFetcher(a *application.Application, c *http.Client) error {
+// RainChanceFetcher displays information about precipitation in Melbourne.
+func RainChanceFetcher(app *application.Application, c *http.Client) error {
 	// TODO: query if currently raining
 	nextRain, foundRain, err := weeklyRainForecast(c)
 	if err != nil {
@@ -15,11 +17,12 @@ func RainChanceFetcher(a *application.Application, c *http.Client) error {
 	}
 
 	if !foundRain {
-		a.Data.Text = "sunny week"
+		app.Data.Text = "sunny week"
+
 		return nil
 	}
 
-	a.Data.Text = fmt.Sprintf("%v%% %v", nextRain.PrecipitationProbability, nextRain.Time.Format("3PM Mon"))
+	app.Data.Text = fmt.Sprintf("%v%% %v", nextRain.PrecipitationProbability, nextRain.Time.Format("3PM Mon"))
 
 	return nil
 }
