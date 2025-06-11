@@ -7,11 +7,11 @@
 
 ## Summary
 
-Altar is a library for golang that allows developers to create custom Applications for the [Awtrix](https://blueforcer.github.io/awtrix3/#/) platform. It's aim is to provide a simple and intuitive manner to stand up a broker with a collection of applications to control the display of Awtrix supported devices.
+Altar is a library for golang that allows developers to create custom Applications for the [Awtrix](https://blueforcer.github.io/awtrix3/#/) platform. Its aim is to provide a simple and intuitive manner to stand up a broker with a collection of applications to control the display of Awtrix supported devices.
 
 ### See it in action
 
-You don't need an awtrix device to run this project. To see it in action you can install [devbox](https://www.jetify.com/devbox/) and run `devbox services up` to see the requests from the demo application get captured by a request logger.
+You don't need an awtrix device to run this project. To see it in action you can install [devbox](https://www.jetify.com/devbox/) and run `devbox services up` to see the requests from the example application get captured by a request logger.
 
 ## Using the library
 
@@ -19,7 +19,7 @@ You don't need an awtrix device to run this project. To see it in action you can
 
 First define an Application:
 
-```go filename="hello.go"
+```go
 package main
 
 import "github.com/t-monaghan/altar/application"
@@ -34,7 +34,7 @@ var HelloWorld = application.NewApplication("Hello World", helloWorldFetcher)
 
 Then define the main function, starting the broker with a list containing the above application:
 
-```go filename="main.go"
+```go
 package main
 
 import (
@@ -64,13 +64,15 @@ func main() {
 }
 ```
 
-Finally, run the broker:
+Finally, run your program:
 
 ```sh
 go run .
 ```
 
-The broker will handle pulling down and standing up the new custom applications, however new applications require manually shutting the broker down and starting the new build. I am planning to develop a launcher that will handle the rollover of new broker builds.
+### Going deeper
+
+Fetchers with more functionality can be found in the [examples](https://github.com/t-monaghan/altar/tree/main/examples) package.
 
 ## Contributing
 
