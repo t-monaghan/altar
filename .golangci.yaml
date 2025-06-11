@@ -10,4 +10,3 @@ linters:
   exclusions:
     paths:
       - cmd/request_logger/*
-      - main.go

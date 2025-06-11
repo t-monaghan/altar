@@ -24,6 +24,7 @@ func RainChanceFetcher(app *application.Application, client *http.Client) error 
 	}
 	// removes any previous application of the rain effect
 	app.Data.Overlay = ""
+	app.GlobalConfig.Overlay = application.Clear
 
 	nextRain, foundRain, err := weeklyRainForecast(client)
 	if err != nil {
@@ -32,13 +33,11 @@ func RainChanceFetcher(app *application.Application, client *http.Client) error 
 
 	if !foundRain {
 		app.Data.Text = "sunny week"
-		app.GlobalConfig.Overlay = application.Clear
 
 		return nil
 	}
 
 	app.Data.Text = fmt.Sprintf("%v%% %v", nextRain.PrecipitationProbability, nextRain.Time.Format("3PM Mon"))
-	app.GlobalConfig.Overlay = application.Clear
 
 	return nil
 }
