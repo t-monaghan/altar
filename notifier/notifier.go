@@ -1,11 +1,54 @@
+// Package notifier provides functionality to write notifiers for altar brokers.
 package notifier
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/t-monaghan/altar/utils"
 )
+
+// Notifier is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
+type Notifier struct {
+	Name           string
+	fetcher        func(*Notifier, *http.Client) error
+	Data           *NotificationData
+	GlobalConfig   utils.AwtrixConfig
+	PollRate       time.Duration
+	HTTPClient     *http.Client
+	PushOnNextCall bool
+	lastPolled     time.Time
+}
+
+// NewNotifier instantiates a new altar notification handler.
+func NewNotifier(name string, fetcher func(*Notifier, *http.Client) error) Notifier {
+	return Notifier{
+		Name:           name,
+		Data:           &NotificationData{},
+		GlobalConfig:   utils.AwtrixConfig{},
+		PollRate:       utils.DefaultPollRate,
+		PushOnNextCall: false,
+		fetcher:        fetcher,
+	}
+}
+
+// Fetch controls the fetching for a notifier.
+func (n *Notifier) Fetch(client *http.Client) error {
+	if !n.ShouldFetch() {
+		slog.Debug("skipping notifier fetch", "notifier", n.Name,
+			"seconds-since-last-fetch", time.Since(n.lastPolled).Seconds(), "poll-rate-seconds", n.PollRate.Seconds())
+
+		return nil
+	}
+
+	slog.Debug("fetching for notifier", "notifier", n.Name,
+		"seconds-since-last-fetch", time.Since(n.lastPolled).Seconds(), "poll-rate-seconds", n.PollRate.Seconds())
+
+	n.lastPolled = time.Now()
+
+	return n.fetcher(n, client)
+}
 
 // NotificationData is Altar's presentation of a custom Awtrix notification.
 type NotificationData struct {
@@ -44,14 +87,32 @@ type NotificationData struct {
 	Overlay     utils.Overlay `json:"overlay,omitempty"`
 }
 
-// Notifier is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
-type Notifier struct {
-	Name           string
-	fetcher        func(*Notifier, *http.Client) error
-	Data           *NotificationData
-	GlobalConfig   utils.AwtrixConfig
-	PollRate       time.Duration
-	lastPolled     time.Time
-	PushOnNextCall bool
-	HTTPClient     *http.Client
+// GetName returns the notifier's name.
+func (n *Notifier) GetName() string {
+	return n.Name
+}
+
+// GetPollRate returns the notifier's poll rate.
+func (n *Notifier) GetPollRate() time.Duration {
+	return n.PollRate
+}
+
+// GetData returns the notifiers data, this is the payload sent to the awtrix device.
+func (n *Notifier) GetData() any {
+	return n.Data
+}
+
+// GetGlobalConfig returns the global config this notifier wishes to manipulate.
+func (n *Notifier) GetGlobalConfig() utils.AwtrixConfig {
+	return n.GlobalConfig
+}
+
+// ShouldFetch signals whether this notifier should have it's fetch method run.
+func (n *Notifier) ShouldFetch() bool {
+	return time.Since(n.lastPolled) > n.PollRate
+}
+
+// ShouldPushToAwtrix signals whether a broker should push this notifier's data to the awtrix device.
+func (n *Notifier) ShouldPushToAwtrix() bool {
+	return n.PushOnNextCall
 }

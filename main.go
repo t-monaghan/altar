@@ -15,7 +15,6 @@ import (
 
 func main() {
 	weatherApp := application.NewApplication("Rain Forecast", weather.RainChanceFetcher)
-
 	appList := []utils.AltarHandler{&weatherApp}
 
 	broker, err := broker.NewBroker(

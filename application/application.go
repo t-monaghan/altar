@@ -12,6 +12,8 @@ import (
 )
 
 // AppData is Altar's presentation of a custom Awtrix application.
+//
+//nolint:lll
 type AppData struct {
 	// includes all fields from docs linked, except for "draw" and "effect settings"
 	// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#json-properties
@@ -58,16 +60,14 @@ type Application struct {
 	HTTPClient     *http.Client
 }
 
-const defaultPollRate = time.Second * 10
-
-// NewApplication Instantiates a new Altar application.
+// NewApplication Instantiates a new altar application.
 func NewApplication(name string, fetcher func(*Application, *http.Client) error) Application {
 	return Application{
 		Name:           name,
 		fetcher:        fetcher,
 		Data:           AppData{},
 		GlobalConfig:   utils.AwtrixConfig{},
-		PollRate:       defaultPollRate,
+		PollRate:       utils.DefaultPollRate,
 		PushOnNextCall: false,
 	}
 }
@@ -88,17 +88,12 @@ func (a *Application) ShouldPushToAwtrix() bool {
 	return a.PushOnNextCall
 }
 
-// SetPushOnNextCall sets the PushOnNextCall field to b
-func (a *Application) SetPushOnNextCall(b bool) {
-	a.PushOnNextCall = b
-}
-
-// GetName returns the name of the app
+// GetName returns the name of the app.
 func (a *Application) GetName() string {
 	return a.Name
 }
 
-// GetPollRate returns the app's poll rate
+// GetPollRate returns the app's poll rate.
 func (a *Application) GetPollRate() time.Duration {
 	return a.PollRate
 }
@@ -122,12 +117,11 @@ func (a *Application) Fetch(client *http.Client) error {
 }
 
 // GetData returns the application's current data.
-// TODO: refine return value from any
 func (a *Application) GetData() any {
 	return a.Data
 }
 
-// GetGlobalConfig returns the global awtrix config this application has set
+// GetGlobalConfig returns the global awtrix config this application has set.
 func (a *Application) GetGlobalConfig() utils.AwtrixConfig {
 	return a.GlobalConfig
 }

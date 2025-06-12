@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/t-monaghan/altar/application"
+	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
 )
 
@@ -156,7 +158,6 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 				err := app.Fetch(brkr.Client)
 				if err != nil {
 					slog.Error("error encountered in fetching", "app", app.GetName(), "error", err)
-					app.SetPushOnNextCall(false)
 				}
 
 				mutateConfig.Lock()
@@ -233,18 +234,22 @@ func (b *HTTPBroker) sendConfig() error {
 	return err
 }
 
-func (b *HTTPBroker) push(app utils.AltarHandler) error {
-	if !app.ShouldPushToAwtrix() {
-		slog.Debug("skipping push for app", "app", app.GetName())
+// ErrUnknownHandlerType is thrown when altar encounters a concrete handler type that it does not recognise.
+// Strictly only the types defined by altar are used as the broker's push method needs to know how to handle the
+// request.
+var ErrUnknownHandlerType = errors.New("unknown handler type")
+
+//nolint:cyclop
+func (b *HTTPBroker) push(handler utils.AltarHandler) error {
+	if !handler.ShouldPushToAwtrix() {
+		slog.Debug("skipping push for handler", "handler", handler.GetName())
 
 		return nil
 	}
 
-	app.SetPushOnNextCall(true)
-
-	jsonData, err := json.Marshal(app.GetData())
+	jsonData, err := json.Marshal(handler.GetData())
 	if err != nil {
-		return fmt.Errorf("failed to marshal %v data into json: %w", app.GetName(), err)
+		return fmt.Errorf("failed to marshal %v data into json: %w", handler.GetName(), err)
 	}
 
 	bufferedJSON := bytes.NewBuffer(jsonData)
@@ -254,33 +259,41 @@ func (b *HTTPBroker) push(app utils.AltarHandler) error {
 		debugPort = defaultWebPort
 	}
 
-	address := fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, debugPort, url.QueryEscape(app.GetName()))
+	var address string
+	switch handler.(type) {
+	case *application.Application:
+		address = fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, debugPort, url.QueryEscape(handler.GetName()))
+	case *notifier.Notifier:
+		address = fmt.Sprintf("%v%v/api/notify", b.clockAddress, debugPort)
+	default:
+		return fmt.Errorf("%w for handler: %v", ErrUnknownHandlerType, handler.GetName())
+	}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
 	if err != nil {
-		return fmt.Errorf("failed to create post request for %v: %w", app.GetName(), err)
+		return fmt.Errorf("failed to create post request for %v: %w", handler.GetName(), err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := b.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform post request for %v: %w", app.GetName(), err)
+		return fmt.Errorf("failed to perform post request for %v: %w", handler.GetName(), err)
 	}
 
 	defer func() {
 		closeErr := resp.Body.Close()
-		if err == nil {
-			err = fmt.Errorf("failed to close body of app push request: %w", closeErr)
+		if err == nil && closeErr != nil {
+			err = fmt.Errorf("%w for handler %v: %w", utils.ErrClosingResponseBody, handler.GetName(), closeErr)
 		}
 	}()
 
 	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
-		slog.Error("awtrix has responded to app update with non-2xx http response",
-			"http-status", resp.Status, "app", app.GetName())
+		slog.Error("awtrix has responded to push with non-2xx http response",
+			"http-status", resp.Status, "handler", handler.GetName())
 	}
 
-	slog.Debug("pushed", "app", app.GetName())
+	slog.Debug("pushed", "handler-name", handler.GetName())
 
 	return err
 }

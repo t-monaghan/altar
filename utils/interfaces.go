@@ -5,11 +5,12 @@ import (
 	"time"
 )
 
+// AltarHandler defines what is required for a broker to manage a handler.
 type AltarHandler interface {
-	ShouldPushToAwtrix() bool
 	Fetch(client *http.Client) error
+	// TODO remove for handling to be done in fetcher with switching on type
 	GetData() any
-	SetPushOnNextCall(bool)
+	ShouldPushToAwtrix() bool
 	GetName() string
 	GetPollRate() time.Duration
 	GetGlobalConfig() AwtrixConfig
