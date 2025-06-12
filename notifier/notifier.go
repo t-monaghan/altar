@@ -116,3 +116,9 @@ func (n *Notifier) ShouldFetch() bool {
 func (n *Notifier) ShouldPushToAwtrix() bool {
 	return n.PushOnNextCall
 }
+
+// SetPollRateByRateLimit is a helper function that sets the notifiers's poll rate
+// when given the count of requests per duration.
+func (n *Notifier) SetPollRateByRateLimit(requests uint32, duration time.Duration) {
+	n.PollRate = duration / time.Duration(requests)
+}
