@@ -7,66 +7,51 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/t-monaghan/altar/utils"
 )
 
 // AppData is Altar's presentation of a custom Awtrix application.
 type AppData struct {
 	// includes all fields from docs linked, except for "draw" and "effect settings"
 	// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#json-properties
-	Text         string   `json:"text,omitempty"`
-	TextCase     *int     `json:"textCase,omitempty"`
-	TopText      *bool    `json:"topText,omitempty"`
-	TextOffset   *int     `json:"textOffset,omitempty"`
-	Center       *bool    `json:"center,omitempty"`
-	Color        []int    `json:"color,omitempty"`    // RGB color values [R,G,B]
-	Gradient     [][]int  `json:"gradient,omitempty"` // Array of RGB colors [[R,G,B], [R,G,B]]
-	BlinkText    *int     `json:"blinkText,omitempty"`
-	FadeText     *int     `json:"fadeText,omitempty"`
-	Background   []int    `json:"background,omitempty"` // RGB color values [R,G,B]
-	Rainbow      *bool    `json:"rainbow,omitempty"`
-	Icon         string   `json:"icon,omitempty"`
-	PushIcon     *int     `json:"pushIcon,omitempty"`
-	Repeat       *int     `json:"repeat,omitempty"`
-	Duration     *int     `json:"duration,omitempty"`
-	Hold         *bool    `json:"hold,omitempty"`
-	Sound        string   `json:"sound,omitempty"`
-	Rtttl        string   `json:"rtttl,omitempty"`
-	LoopSound    *bool    `json:"loopSound,omitempty"`
-	Bar          []int    `json:"bar,omitempty"`
-	Line         []int    `json:"line,omitempty"`
-	Autoscale    *bool    `json:"autoscale,omitempty"`
-	BarBC        []int    `json:"barBC,omitempty"` // RGB color values [R,G,B]
-	Progress     *int     `json:"progress,omitempty"`
-	ProgressC    []int    `json:"progressC,omitempty"`  // RGB color values [R,G,B]
-	ProgressBC   []int    `json:"progressBC,omitempty"` // RGB color values [R,G,B]
-	Pos          *int     `json:"pos,omitempty"`
-	Lifetime     *int     `json:"lifetime,omitempty"`
-	LifetimeMode *int     `json:"lifetimeMode,omitempty"`
-	Stack        *bool    `json:"stack,omitempty"`
-	Wakeup       *bool    `json:"wakeup,omitempty"`
-	NoScroll     *bool    `json:"noScroll,omitempty"`
-	Clients      []string `json:"clients,omitempty"`
-	ScrollSpeed  *int     `json:"scrollSpeed,omitempty"`
-	Effect       string   `json:"effect,omitempty"`
-	Save         *bool    `json:"save,omitempty"`
-	Overlay      Overlay  `json:"overlay,omitempty"`
+	Text         string        `json:"text,omitempty"`
+	TextCase     *int          `json:"textCase,omitempty"`
+	TopText      *bool         `json:"topText,omitempty"`
+	TextOffset   *int          `json:"textOffset,omitempty"`
+	Center       *bool         `json:"center,omitempty"`
+	Color        []int         `json:"color,omitempty"`    // RGB color values [R,G,B]
+	Gradient     [][]int       `json:"gradient,omitempty"` // Array of RGB colors [[R,G,B], [R,G,B]]
+	BlinkText    *int          `json:"blinkText,omitempty"`
+	FadeText     *int          `json:"fadeText,omitempty"`
+	Background   []int         `json:"background,omitempty"` // RGB color values [R,G,B]
+	Rainbow      *bool         `json:"rainbow,omitempty"`
+	Icon         string        `json:"icon,omitempty"`
+	PushIcon     *int          `json:"pushIcon,omitempty"`
+	Repeat       *int          `json:"repeat,omitempty"`
+	Duration     *int          `json:"duration,omitempty"`
+	Bar          []int         `json:"bar,omitempty"`
+	Line         []int         `json:"line,omitempty"`
+	Autoscale    *bool         `json:"autoscale,omitempty"`
+	BarBC        []int         `json:"barBC,omitempty"` // RGB color values [R,G,B]
+	Progress     *int          `json:"progress,omitempty"`
+	ProgressC    []int         `json:"progressC,omitempty"`  // RGB color values [R,G,B]
+	ProgressBC   []int         `json:"progressBC,omitempty"` // RGB color values [R,G,B]
+	Pos          *int          `json:"pos,omitempty"`
+	Lifetime     *int          `json:"lifetime,omitempty"`
+	LifetimeMode *int          `json:"lifetimeMode,omitempty"` // TODO: check nil = shows the app, 0 = deletes the app, 1 = marks it as staled with a red rectangle around the app.
+	NoScroll     *bool         `json:"noScroll,omitempty"`
+	ScrollSpeed  *int          `json:"scrollSpeed,omitempty"`
+	Effect       string        `json:"effect,omitempty"`
+	Overlay      utils.Overlay `json:"overlay,omitempty"`
 }
-
-// Overlay represents the enumarable options for Awtrix app and global overlays.
-type Overlay string
-
-//nolint:revive
-const (
-	Rain  Overlay = "rain"
-	Clear Overlay = "clear"
-)
 
 // Application is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
 type Application struct {
 	Name           string
 	fetcher        func(*Application, *http.Client) error
 	Data           AppData
-	GlobalConfig   AwtrixConfig
+	GlobalConfig   utils.AwtrixConfig
 	PollRate       time.Duration
 	lastPolled     time.Time
 	PushOnNextCall bool
@@ -81,7 +66,7 @@ func NewApplication(name string, fetcher func(*Application, *http.Client) error)
 		Name:           name,
 		fetcher:        fetcher,
 		Data:           AppData{},
-		GlobalConfig:   AwtrixConfig{},
+		GlobalConfig:   utils.AwtrixConfig{},
 		PollRate:       defaultPollRate,
 		PushOnNextCall: false,
 	}
@@ -103,6 +88,21 @@ func (a *Application) ShouldPushToAwtrix() bool {
 	return a.PushOnNextCall
 }
 
+// SetPushOnNextCall sets the PushOnNextCall field to b
+func (a *Application) SetPushOnNextCall(b bool) {
+	a.PushOnNextCall = b
+}
+
+// GetName returns the name of the app
+func (a *Application) GetName() string {
+	return a.Name
+}
+
+// GetPollRate returns the app's poll rate
+func (a *Application) GetPollRate() time.Duration {
+	return a.PollRate
+}
+
 // Fetch uses the application's fetcher to query for new data.
 func (a *Application) Fetch(client *http.Client) error {
 	if !a.ShouldFetch() {
@@ -122,6 +122,12 @@ func (a *Application) Fetch(client *http.Client) error {
 }
 
 // GetData returns the application's current data.
-func (a *Application) GetData() AppData {
+// TODO: refine return value from any
+func (a *Application) GetData() any {
 	return a.Data
+}
+
+// GetGlobalConfig returns the global awtrix config this application has set
+func (a *Application) GetGlobalConfig() utils.AwtrixConfig {
+	return a.GlobalConfig
 }

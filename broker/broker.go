@@ -19,7 +19,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/utils"
 )
 
@@ -48,11 +47,13 @@ const (
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
-	applications  []*application.Application
+	// applications  []*application.Application
+	// notifiers     []*notifier.Notifier
+	handlers      []utils.AltarHandler
 	clockAddress  string
 	Client        *http.Client
 	Debug         bool
-	DisplayConfig application.AwtrixConfig
+	DisplayConfig utils.AwtrixConfig
 	AdminPort     string
 }
 
@@ -65,8 +66,8 @@ var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not v
 // NewBroker instantiates a new Altar broker.
 func NewBroker(
 	addr string,
-	applications []*application.Application,
-	options ...func(*application.AwtrixConfig),
+	applications []utils.AltarHandler,
+	options ...func(*utils.AwtrixConfig),
 ) (*HTTPBroker, error) {
 	if len(applications) == 0 {
 		return nil, ErrBrokerHasNoApplications
@@ -77,14 +78,14 @@ func NewBroker(
 		return nil, ErrIPNotValid
 	}
 
-	cfg := application.AwtrixConfig{}
+	cfg := utils.AwtrixConfig{}
 	for _, option := range options {
 		option(&cfg)
 	}
 
 	brkr := HTTPBroker{
 		clockAddress:  fmt.Sprintf("http://%v", clockIP),
-		applications:  applications,
+		handlers:      applications,
 		Client:        &http.Client{Timeout: httpTimeout},
 		Debug:         false,
 		DisplayConfig: cfg,
@@ -146,22 +147,22 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 
 		var mutateConfig sync.Mutex
 
-		for _, app := range brkr.applications {
+		for _, app := range brkr.handlers {
 			fetchGroup.Add(1)
 
-			go func(app *application.Application) {
+			go func(app utils.AltarHandler) {
 				defer fetchGroup.Done()
 
 				err := app.Fetch(brkr.Client)
 				if err != nil {
-					slog.Error("error encountered in fetching", "app", app.Name, "error", err)
-					app.PushOnNextCall = false
+					slog.Error("error encountered in fetching", "app", app.GetName(), "error", err)
+					app.SetPushOnNextCall(false)
 				}
 
 				mutateConfig.Lock()
-				if app.PollRate < quickestPoll {
-					brkr.DisplayConfig = mergeConfig(brkr.DisplayConfig, app.GlobalConfig)
-					quickestPoll = app.PollRate
+				if app.GetPollRate() < quickestPoll {
+					brkr.DisplayConfig = mergeConfig(brkr.DisplayConfig, app.GetGlobalConfig())
+					quickestPoll = app.GetPollRate()
 				}
 				mutateConfig.Unlock()
 			}(app)
@@ -177,10 +178,10 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 		// TODO: decide if push should be sent as batch request, or similarly to above with goroutines
 		// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#sending-multiple-custom-apps-simultaneously
 		// TODO: decide if apps should be pushed as soon as they're fetched
-		for _, app := range brkr.applications {
+		for _, app := range brkr.handlers {
 			err := brkr.push(app)
 			if err != nil {
-				slog.Error("error encountered pushing to awtrix device", "app", app.Name, "error", err)
+				slog.Error("error encountered pushing to awtrix device", "app", app.GetName(), "error", err)
 			}
 		}
 
@@ -232,18 +233,18 @@ func (b *HTTPBroker) sendConfig() error {
 	return err
 }
 
-func (b *HTTPBroker) push(app *application.Application) error {
+func (b *HTTPBroker) push(app utils.AltarHandler) error {
 	if !app.ShouldPushToAwtrix() {
-		slog.Debug("skipping push for app", "app", app.Name)
+		slog.Debug("skipping push for app", "app", app.GetName())
 
 		return nil
 	}
 
-	app.PushOnNextCall = false
+	app.SetPushOnNextCall(true)
 
 	jsonData, err := json.Marshal(app.GetData())
 	if err != nil {
-		return fmt.Errorf("failed to marshal %v data into json: %w", app.Name, err)
+		return fmt.Errorf("failed to marshal %v data into json: %w", app.GetName(), err)
 	}
 
 	bufferedJSON := bytes.NewBuffer(jsonData)
@@ -253,18 +254,18 @@ func (b *HTTPBroker) push(app *application.Application) error {
 		debugPort = defaultWebPort
 	}
 
-	address := fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, debugPort, url.QueryEscape(app.Name))
+	address := fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, debugPort, url.QueryEscape(app.GetName()))
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
 	if err != nil {
-		return fmt.Errorf("failed to create post request for %v: %w", app.Name, err)
+		return fmt.Errorf("failed to create post request for %v: %w", app.GetName(), err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := b.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform post request for %v: %w", app.Name, err)
+		return fmt.Errorf("failed to perform post request for %v: %w", app.GetName(), err)
 	}
 
 	defer func() {
@@ -276,10 +277,10 @@ func (b *HTTPBroker) push(app *application.Application) error {
 
 	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
 		slog.Error("awtrix has responded to app update with non-2xx http response",
-			"http-status", resp.Status, "app", app.Name)
+			"http-status", resp.Status, "app", app.GetName())
 	}
 
-	slog.Debug("pushed", "app", app.Name)
+	slog.Debug("pushed", "app", app.GetName())
 
 	return err
 }
@@ -359,9 +360,10 @@ func (b *HTTPBroker) rebootAwtrix() error {
 	return err
 }
 
+// TODO: remove this, have apps return a method which is performed on the config a la the blog post
 // mergeConfig will only merge options considered worth changing at runtime.
-func mergeConfig(left application.AwtrixConfig, right application.AwtrixConfig) application.AwtrixConfig {
-	keep := application.AwtrixConfig{}
+func mergeConfig(left utils.AwtrixConfig, right utils.AwtrixConfig) utils.AwtrixConfig {
+	keep := utils.AwtrixConfig{}
 	if right.Overlay != "" {
 		keep.Overlay = right.Overlay
 	} else if left.Overlay != "" {

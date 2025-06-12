@@ -10,12 +10,13 @@ import (
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
 	"github.com/t-monaghan/altar/examples/weather"
+	"github.com/t-monaghan/altar/utils"
 )
 
 func main() {
 	weatherApp := application.NewApplication("Rain Forecast", weather.RainChanceFetcher)
 
-	appList := []*application.Application{&weatherApp}
+	appList := []utils.AltarHandler{&weatherApp}
 
 	broker, err := broker.NewBroker(
 		"127.0.0.1",
