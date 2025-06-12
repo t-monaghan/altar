@@ -23,12 +23,12 @@ func Test_InvalidBrokerInstantiation(t *testing.T) {
 		func(_ *application.Application, _ *http.Client) error {
 			return nil
 		})
-	toyAppList := []*application.Application{&toyApp}
+	toyAppList := []utils.AltarHandler{&toyApp}
 
 	cases := []struct {
 		description  string
 		IPAddress    string
-		Applications []*application.Application
+		Applications []utils.AltarHandler
 		expected     error
 	}{
 		{"broker with no applications", "127.0.0.1", nil, broker.ErrBrokerHasNoApplications},
@@ -61,7 +61,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 
 			return nil
 		})
-	toyAppList := []*application.Application{&toyApp}
+	toyAppList := []utils.AltarHandler{&toyApp}
 
 	t.Run("broker executes handler requests", func(t *testing.T) {
 		t.Parallel()
@@ -119,11 +119,11 @@ func Test_BrokerSetsConfig(t *testing.T) {
 
 			return nil
 		})
-	toyAppList := []*application.Application{&toyApp}
+	toyAppList := []utils.AltarHandler{&toyApp}
 
 	cases := []struct {
 		description string
-		configFn    func() func(*application.AwtrixConfig)
+		configFn    func() func(*utils.AwtrixConfig)
 		expected    string
 		port        string
 	}{

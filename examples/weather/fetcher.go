@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/t-monaghan/altar/application"
+	"github.com/t-monaghan/altar/utils"
 )
 
 // RainChanceFetcher displays information about precipitation in Melbourne.
@@ -17,14 +18,14 @@ func RainChanceFetcher(app *application.Application, client *http.Client) error 
 
 	if precip > 0 {
 		app.Data.Text = fmt.Sprintf("Raining: %.0fmm", precip)
-		app.Data.Overlay = application.Rain
-		app.GlobalConfig.Overlay = application.Rain
+		app.Data.Overlay = utils.Rain
+		app.GlobalConfig.Overlay = utils.Rain
 
 		return nil
 	}
 	// removes any previous application of the rain effect
 	app.Data.Overlay = ""
-	app.GlobalConfig.Overlay = application.Clear
+	app.GlobalConfig.Overlay = utils.Clear
 
 	nextRain, foundRain, err := weeklyRainForecast(client)
 	if err != nil {
