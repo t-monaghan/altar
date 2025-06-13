@@ -10,16 +10,18 @@ import (
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
+	"github.com/t-monaghan/altar/examples/pipelinewatcher"
 	"github.com/t-monaghan/altar/examples/weather"
 	"github.com/t-monaghan/altar/utils"
 )
 
 func main() {
+	githubApp := application.NewApplication("github", pipelinewatcher.PipelineFetcher)
 	weatherApp := application.NewApplication("Rain Forecast", weather.RainChanceFetcher)
 
-	appList := []utils.AltarHandler{&weatherApp}
+	appList := []utils.AltarHandler{&weatherApp, &githubApp}
 
-	listeners := map[string]func(http.ResponseWriter, *http.Request){}
+	listeners := map[string]func(http.ResponseWriter, *http.Request){"/api/pipeline-watcher": pipelinewatcher.PipelineHandler}
 
 	broker, err := broker.NewBroker(
 		"127.0.0.1",
