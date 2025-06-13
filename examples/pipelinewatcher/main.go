@@ -3,57 +3,79 @@ package pipelinewatcher
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"sync"
 
-	"github.com/t-monaghan/altar/application"
+	"github.com/t-monaghan/altar/notifier"
 )
 
 //nolint:gochecknoglobals
 var (
-	branchChannel      chan PullRequestActionsStatus
+	branchChannel      chan ChecksProgress
 	once               sync.Once
 	channelInitialized bool
 )
 
+const channelBufferSize = 5
+
 func initChannel() {
 	once.Do(func() {
-		branchChannel = make(chan PullRequestActionsStatus, 5)
+		branchChannel = make(chan ChecksProgress, channelBufferSize)
 		channelInitialized = true
 	})
 }
 
 // PipelineFetcher is the handler function for the Github pipeline application.
-func PipelineFetcher(app *application.Application, client *http.Client) error {
+func PipelineFetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 	if !channelInitialized {
 		initChannel()
 	}
 
-	var info PullRequestActionsStatus
+	var info ChecksProgress
 	select {
 	case info = <-branchChannel:
 		slog.Debug("github pipeline fetcher received message from channel", "msg", info)
 	default: // No data available in channel
+		ntfr.PushOnNextCall = false
+
 		return nil
 	}
 
-	// write loading bar for in progress
-	// write (completed)/(total) as text
+	progress := info.CompletedActions / info.TotalActions
+	ntfr.Data.Progress = &progress
+	ntfr.Data.ProgressC = []int{74, 194, 108}
+	ntfr.Data.ProgressBC = []int{17, 99, 42}
+
+	if len(info.FailedActions) > 0 {
+		fiveHundred := 500
+		trueVal := true
+		ntfr.Data.BlinkText = &fiveHundred
+		ntfr.Data.Hold = &trueVal
+		ntfr.Data.Text = fmt.Sprintf("%v failed", info.FailedActions[0])
+
+		if len(info.FailedActions) > 1 {
+			ntfr.Data.Text = fmt.Sprintf("%v failing", len(info.FailedActions))
+		}
+
+		return nil
+	}
+
+	ntfr.Data.Text = fmt.Sprintf("%v/%v jobs", info.CompletedActions, info.TotalActions)
 
 	return nil
 }
 
-// PullRequestActionsStatus represents branch information from GitHub.
-// TODO: restructure this as cli will pass pertinent info
-type PullRequestActionsStatus struct {
+// ChecksProgress represents the progress of required checks for a given PR.
+type ChecksProgress struct {
 	TotalActions     int      `json:"totalActions"`
 	CompletedActions int      `json:"completedActions"`
 	FailedActions    []string `json:"failedActions"`
 }
 
-// PipelineHandler handles HTTP requests with GitHub branch information.
+// PipelineHandler handles HTTP requests with GitHub checks information.
 func PipelineHandler(rsp http.ResponseWriter, req *http.Request) {
 	// Ensure channel is initialized
 	if !channelInitialized {
@@ -70,7 +92,7 @@ func PipelineHandler(rsp http.ResponseWriter, req *http.Request) {
 
 	slog.Debug("github pipeline listener received message", "body", string(body))
 
-	var branch PullRequestActionsStatus
+	var branch ChecksProgress
 	err = json.Unmarshal(body, &branch)
 
 	if err != nil {
