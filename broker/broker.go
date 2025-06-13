@@ -49,14 +49,13 @@ const (
 
 // HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
-	// applications  []*application.Application
-	// notifiers     []*notifier.Notifier
 	handlers      []utils.AltarHandler
 	clockAddress  string
 	Client        *http.Client
 	Debug         bool
 	DisplayConfig utils.AwtrixConfig
 	AdminPort     string
+	listeners     map[string]func(http.ResponseWriter, *http.Request)
 }
 
 // ErrBrokerHasNoApplications occurs when an Altar Broker is instantiated with no applications.
@@ -69,6 +68,7 @@ var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not v
 func NewBroker(
 	addr string,
 	applications []utils.AltarHandler,
+	listeners map[string]func(http.ResponseWriter, *http.Request),
 	options ...func(*utils.AwtrixConfig),
 ) (*HTTPBroker, error) {
 	if len(applications) == 0 {
@@ -91,12 +91,14 @@ func NewBroker(
 		Client:        &http.Client{Timeout: httpTimeout},
 		Debug:         false,
 		DisplayConfig: cfg,
+		listeners:     listeners,
 	}
 
 	return &brkr, nil
 }
 
 // Start executes the broker's routine.
+// it accepts a mapping of paths and request handlers for extending the broker's API.
 func (b *HTTPBroker) Start() {
 	if b.Debug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
@@ -121,6 +123,10 @@ func (b *HTTPBroker) Start() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/admin/command", commandHandler)
+
+	for path, handler := range b.listeners {
+		mux.HandleFunc(path, handler)
+	}
 
 	adminPort := DefaultAdminPort
 
