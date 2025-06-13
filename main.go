@@ -5,6 +5,7 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/t-monaghan/altar/application"
@@ -15,11 +16,15 @@ import (
 
 func main() {
 	weatherApp := application.NewApplication("Rain Forecast", weather.RainChanceFetcher)
+
 	appList := []utils.AltarHandler{&weatherApp}
+
+	listeners := map[string]func(http.ResponseWriter, *http.Request){}
 
 	broker, err := broker.NewBroker(
 		"127.0.0.1",
 		appList,
+		listeners,
 		application.DisableAllDefaultApps(),
 	)
 
