@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"os"
 	"slices"
 	"time"
 )
@@ -20,6 +22,7 @@ type HourlyForecast struct {
 // ErrEmptyResponse describes when the weather api returns an empty body.
 var ErrEmptyResponse = errors.New("did not receive a response body from weather api")
 
+//nolint:funlen
 func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	req, err := http.NewRequestWithContext(context.Background(),
 		http.MethodGet, "https://api.open-meteo.com/v1/forecast", nil)
@@ -27,12 +30,15 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 		return HourlyForecast{}, false, fmt.Errorf("error creating request for weekly rain forecast: %w", err)
 	}
 
-	q := req.URL.Query()
-	q.Add("latitude", "-37.814")
-	q.Add("longitude", "144.9633")
-	q.Add("hourly", "precipitation_probability")
-	q.Add("timezone", "Australia/Sydney")
-	req.URL.RawQuery = q.Encode()
+	query := req.URL.Query()
+	query.Add("latitude", os.Getenv("LATITUDE"))
+	query.Add("longitude", os.Getenv("LONGITUDE"))
+	query.Add("hourly", "precipitation_probability")
+
+	zone, _ := time.Now().Zone()
+	slog.Info(zone)
+	query.Add("timezone", zone)
+	req.URL.RawQuery = query.Encode()
 
 	response, err := client.Do(req)
 	if err != nil {
