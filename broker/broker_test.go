@@ -38,7 +38,7 @@ func Test_InvalidBrokerInstantiation(t *testing.T) {
 		t.Run(testCase.description, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := broker.NewBroker(testCase.IPAddress, testCase.Applications)
+			_, err := broker.NewBroker(testCase.IPAddress, testCase.Applications, map[string]func(http.ResponseWriter, *http.Request){})
 			if err == nil || !errors.Is(err, testCase.expected) {
 				t.Fatalf("did not throw expected error\n\texpected: %v\n\treceived: %v", testCase.expected, err)
 			}
@@ -66,7 +66,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	t.Run("broker executes handler requests", func(t *testing.T) {
 		t.Parallel()
 
-		brkr, err := broker.NewBroker("127.0.0.1", toyAppList)
+		brkr, err := broker.NewBroker("127.0.0.1", toyAppList, map[string]func(http.ResponseWriter, *http.Request){})
 		if err != nil {
 			t.Fatalf("should not throw error creating broker\n\treceived error: %v", err)
 		}
@@ -95,7 +95,11 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 
 			return empty200Response, nil
 		})
+
+		_, cancel := context.WithCancel(t.Context())
+		// TODO: reimplement recover to handle broker panic now that handler func can panic
 		go func() {
+			defer cancel()
 			brkr.Start()
 		}()
 
@@ -138,7 +142,7 @@ func Test_BrokerSetsConfig(t *testing.T) {
 			configRequestReceived := make(chan struct{})
 			configRequestCorrect := make(chan bool, 1)
 
-			brkr, err := broker.NewBroker("127.0.0.1", toyAppList, testCase.configFn())
+			brkr, err := broker.NewBroker("127.0.0.1", toyAppList, map[string]func(http.ResponseWriter, *http.Request){}, testCase.configFn())
 			if err != nil {
 				t.Fatalf("should not throw error creating broker\n\treceived error: %v", err)
 			}
@@ -171,14 +175,9 @@ func Test_BrokerSetsConfig(t *testing.T) {
 			})
 
 			_, cancel := context.WithCancel(t.Context())
+			// TODO: reimplement recover to handle broker panic now that handler func can panic
 			go func() {
 				defer cancel()
-				defer func() {
-					if r := recover(); r != nil {
-						t.Logf("Broker panicked: %v", r)
-					}
-				}()
-
 				brkr.Start()
 			}()
 

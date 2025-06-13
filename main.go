@@ -5,21 +5,31 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
-	"github.com/t-monaghan/altar/examples/weather"
+	"github.com/t-monaghan/altar/examples/pipelinewatcher"
 	"github.com/t-monaghan/altar/utils"
 )
 
 func main() {
-	weatherApp := application.NewApplication("Rain Forecast", weather.RainChanceFetcher)
-	appList := []utils.AltarHandler{&weatherApp}
+	// weatherApp := application.NewApplication("Rain Forecast", weather.RainChanceFetcher)
+
+	githubApp := application.NewApplication("github app", pipelinewatcher.PipelineFetcher)
+	appList := []utils.AltarHandler{&githubApp}
+	githubApp.PollRate = time.Second * 10
+
+	listeners := map[string]func(http.ResponseWriter, *http.Request){
+		"/api/pipeline-watcher": pipelinewatcher.PipelineHandler,
+	}
 
 	broker, err := broker.NewBroker(
 		"127.0.0.1",
 		appList,
+		listeners,
 		application.DisableAllDefaultApps(),
 	)
 
