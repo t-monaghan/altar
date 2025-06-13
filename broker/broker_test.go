@@ -38,7 +38,8 @@ func Test_InvalidBrokerInstantiation(t *testing.T) {
 		t.Run(testCase.description, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := broker.NewBroker(testCase.IPAddress, testCase.Applications, map[string]func(http.ResponseWriter, *http.Request){})
+			_, err := broker.NewBroker(testCase.IPAddress,
+				testCase.Applications, map[string]func(http.ResponseWriter, *http.Request){})
 			if err == nil || !errors.Is(err, testCase.expected) {
 				t.Fatalf("did not throw expected error\n\texpected: %v\n\treceived: %v", testCase.expected, err)
 			}
@@ -111,7 +112,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 	})
 }
 
-//nolint:gocognit,cyclop,funlen
+//nolint:funlen
 func Test_BrokerSetsConfig(t *testing.T) {
 	t.Parallel()
 
@@ -142,7 +143,8 @@ func Test_BrokerSetsConfig(t *testing.T) {
 			configRequestReceived := make(chan struct{})
 			configRequestCorrect := make(chan bool, 1)
 
-			brkr, err := broker.NewBroker("127.0.0.1", toyAppList, map[string]func(http.ResponseWriter, *http.Request){}, testCase.configFn())
+			brkr, err := broker.NewBroker("127.0.0.1", toyAppList,
+				map[string]func(http.ResponseWriter, *http.Request){}, testCase.configFn())
 			if err != nil {
 				t.Fatalf("should not throw error creating broker\n\treceived error: %v", err)
 			}
