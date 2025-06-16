@@ -77,7 +77,6 @@ type ChecksProgress struct {
 
 // PipelineHandler handles HTTP requests with GitHub checks information.
 func PipelineHandler(rsp http.ResponseWriter, req *http.Request) {
-	// Ensure channel is initialized
 	if !channelInitialized {
 		initChannel()
 	}
@@ -104,10 +103,8 @@ func PipelineHandler(rsp http.ResponseWriter, req *http.Request) {
 
 	slog.Debug("github pipeline listener posted message to channel", "msg", branch)
 
-	// Use non-blocking send to avoid deadlocks if channel is full
 	select {
 	case branchChannel <- branch:
-		// Successfully sent
 	default:
 		slog.Warn("github pipeline channel is full, dropping message")
 	}
@@ -115,10 +112,9 @@ func PipelineHandler(rsp http.ResponseWriter, req *http.Request) {
 	rsp.WriteHeader(http.StatusOK)
 }
 
-// Reset clears the channel state - useful for testing.
+// Reset clears the state of the channel used to communicate between the api handler and the altar fetcher.
 func Reset() {
 	if channelInitialized {
-		// Clear the channel
 		for len(branchChannel) > 0 {
 			<-branchChannel
 		}
