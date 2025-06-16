@@ -131,6 +131,8 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 	}
 }
 
+const blueRawVal = 2790338 // #2A93C2
+
 func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
 	todaysDate := civil.DateOf(time.Now())
 	startOfThisMonth := civil.Date{Year: todaysDate.Year, Month: todaysDate.Month, Day: 1}
@@ -139,7 +141,7 @@ func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
 	for i := range 8 {
 		weeksSinceStartOfMonth := todaysDate.DaysSince(startOfThisMonth.AddMonths(-i)) / daysInAWeek
 		if weeksSinceStartOfMonth < widthOfDisplay {
-			drawing[weeksSinceStartOfMonth] = 2790338 // #2A93C2
+			drawing[weeksSinceStartOfMonth] = blueRawVal
 		}
 	}
 	// Contribution grid is in reverse chronological order, we reverse the drawing to match this.
