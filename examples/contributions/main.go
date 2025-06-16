@@ -97,7 +97,7 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 	busiestDay := slices.Max(displayableContributions)
 	transformed := transformRightThenDownToDownThenRight(displayableContributions)
 
-	painted := make([]int, 224)
+	painted := make([]int, widthOfDisplay*daysInAWeek)
 
 	for pos, contributionValue := range transformed {
 		var colour int
