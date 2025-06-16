@@ -4,6 +4,7 @@
 package application
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
@@ -17,35 +18,63 @@ import (
 type AppData struct {
 	// includes all fields from docs linked, except for "draw" and "effect settings"
 	// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#json-properties
-	Text         string        `json:"text,omitempty"`
-	TextCase     *int          `json:"textCase,omitempty"`
-	TopText      *bool         `json:"topText,omitempty"`
-	TextOffset   *int          `json:"textOffset,omitempty"`
-	Center       *bool         `json:"center,omitempty"`
-	Color        []int         `json:"color,omitempty"`    // RGB color values [R,G,B]
-	Gradient     [][]int       `json:"gradient,omitempty"` // Array of RGB colors [[R,G,B], [R,G,B]]
-	BlinkText    *int          `json:"blinkText,omitempty"`
-	FadeText     *int          `json:"fadeText,omitempty"`
-	Background   []int         `json:"background,omitempty"` // RGB color values [R,G,B]
-	Rainbow      *bool         `json:"rainbow,omitempty"`
-	Icon         string        `json:"icon,omitempty"`
-	PushIcon     *int          `json:"pushIcon,omitempty"`
-	Repeat       *int          `json:"repeat,omitempty"`
-	Duration     *int          `json:"duration,omitempty"`
-	Bar          []int         `json:"bar,omitempty"`
-	Line         []int         `json:"line,omitempty"`
-	Autoscale    *bool         `json:"autoscale,omitempty"`
-	BarBC        []int         `json:"barBC,omitempty"` // RGB color values [R,G,B]
-	Progress     *int          `json:"progress,omitempty"`
-	ProgressC    []int         `json:"progressC,omitempty"`  // RGB color values [R,G,B]
-	ProgressBC   []int         `json:"progressBC,omitempty"` // RGB color values [R,G,B]
-	Pos          *int          `json:"pos,omitempty"`
-	Lifetime     *int          `json:"lifetime,omitempty"`
-	LifetimeMode *int          `json:"lifetimeMode,omitempty"` // TODO: check nil = shows the app, 0 = deletes the app, 1 = marks it as staled with a red rectangle around the app.
-	NoScroll     *bool         `json:"noScroll,omitempty"`
-	ScrollSpeed  *int          `json:"scrollSpeed,omitempty"`
-	Effect       string        `json:"effect,omitempty"`
-	Overlay      utils.Overlay `json:"overlay,omitempty"`
+	Text         string              `json:"text,omitempty"`
+	TextCase     *int                `json:"textCase,omitempty"`
+	TopText      *bool               `json:"topText,omitempty"`
+	TextOffset   *int                `json:"textOffset,omitempty"`
+	Center       *bool               `json:"center,omitempty"`
+	Color        []int               `json:"color,omitempty"`    // RGB color values [R,G,B]
+	Gradient     [][]int             `json:"gradient,omitempty"` // Array of RGB colors [[R,G,B], [R,G,B]]
+	BlinkText    *int                `json:"blinkText,omitempty"`
+	FadeText     *int                `json:"fadeText,omitempty"`
+	Background   []int               `json:"background,omitempty"` // RGB color values [R,G,B]
+	Rainbow      *bool               `json:"rainbow,omitempty"`
+	Icon         string              `json:"icon,omitempty"`
+	PushIcon     *int                `json:"pushIcon,omitempty"`
+	Repeat       *int                `json:"repeat,omitempty"`
+	Duration     *int                `json:"duration,omitempty"`
+	Bar          []int               `json:"bar,omitempty"`
+	Line         []int               `json:"line,omitempty"`
+	Autoscale    *bool               `json:"autoscale,omitempty"`
+	BarBC        []int               `json:"barBC,omitempty"` // RGB color values [R,G,B]
+	Progress     *int                `json:"progress,omitempty"`
+	ProgressC    []int               `json:"progressC,omitempty"`  // RGB color values [R,G,B]
+	ProgressBC   []int               `json:"progressBC,omitempty"` // RGB color values [R,G,B]
+	Pos          *int                `json:"pos,omitempty"`
+	Lifetime     *int                `json:"lifetime,omitempty"`
+	LifetimeMode *int                `json:"lifetimeMode,omitempty"` // TODO: check nil = shows the app, 0 = deletes the app, 1 = marks it as staled with a red rectangle around the app.
+	NoScroll     *bool               `json:"noScroll,omitempty"`
+	ScrollSpeed  *int                `json:"scrollSpeed,omitempty"`
+	Effect       string              `json:"effect,omitempty"`
+	Overlay      utils.Overlay       `json:"overlay,omitempty"`
+	Draw         *[]DrawInstructions `json:"draw,omitempty"`
+}
+
+// DrawInstructions is the container for the different image instructions possible in awtrix.
+type DrawInstructions struct {
+	Bitmap *ImageAndPosition `json:"db,omitempty"`
+}
+
+// ImageAndPosition defines how to draw an image based on pixel colours in their raw numeric value.
+type ImageAndPosition struct {
+	XPos   int
+	Ypos   int
+	Width  int
+	Height int
+	Image  []int
+}
+
+// MarshalJSON is used here as ImageAndPosition has a curious format defined by awtrix.
+//
+//nolint:wrapcheck //MarshalJSON is being overloaded, so we have no error to wrap around the returned error.
+func (f *ImageAndPosition) MarshalJSON() ([]byte, error) {
+	return json.Marshal([]any{
+		f.XPos,
+		f.Ypos,
+		f.Width,
+		f.Height,
+		f.Image,
+	})
 }
 
 // Application is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.

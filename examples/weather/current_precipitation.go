@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -25,7 +24,6 @@ func currentPrecipitation(client *http.Client) (float64, error) {
 	query.Add("current", "precipitation")
 
 	zone, _ := time.Now().Zone()
-	slog.Info(zone)
 	query.Add("timezone", zone)
 	req.URL.RawQuery = query.Encode()
 

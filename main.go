@@ -10,21 +10,24 @@ import (
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
-	"github.com/t-monaghan/altar/examples/pipelinewatcher"
-	"github.com/t-monaghan/altar/examples/weather"
+	"github.com/t-monaghan/altar/examples/contributions"
+	"github.com/t-monaghan/altar/examples/githubchecks"
+	precipitation "github.com/t-monaghan/altar/examples/weather"
 	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
 )
 
 func main() {
-	githubApp := notifier.NewNotifier("github", pipelinewatcher.PipelineFetcher)
-	weatherApp := application.NewApplication("Rain Forecast", weather.RainChanceFetcher)
+	githubChecks := notifier.NewNotifier("github checks", githubchecks.Fetcher)
+	precipitation := application.NewApplication("rain forecast", precipitation.Fetcher)
+	githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
 
 	listeners := map[string]func(http.ResponseWriter, *http.Request){
-		"/api/pipeline-watcher": pipelinewatcher.PipelineHandler,
+		"/api/pipeline-watcher": githubchecks.Handler,
+		"/api/contributions":    contributions.Handler,
 	}
 
-	appList := []utils.AltarHandler{&weatherApp, &githubApp}
+	appList := []utils.AltarHandler{&githubChecks, &precipitation, &githubContributions}
 
 	requiredEnvVars := []string{"LATITUDE", "LONGITUDE"}
 	missingVars := []string{}

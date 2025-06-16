@@ -1,5 +1,5 @@
-// Package pipelinewatcher provides an example extension of altar's broker server.
-package pipelinewatcher
+// Package githubchecks provides an example extension of altar's broker server.
+package githubchecks
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 
 //nolint:gochecknoglobals
 var (
-	branchChannel      chan ChecksProgress
+	checksChannel      chan ChecksProgress
 	once               sync.Once
 	channelInitialized bool
 )
@@ -23,21 +23,21 @@ const channelBufferSize = 5
 
 func initChannel() {
 	once.Do(func() {
-		branchChannel = make(chan ChecksProgress, channelBufferSize)
+		checksChannel = make(chan ChecksProgress, channelBufferSize)
 		channelInitialized = true
 	})
 }
 
-// PipelineFetcher is the handler function for the Github pipeline application.
-func PipelineFetcher(ntfr *notifier.Notifier, _ *http.Client) error {
+// Fetcher receives data from the handler and prepares it to be posted by altar's broker.
+func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 	if !channelInitialized {
 		initChannel()
 	}
 
 	var info ChecksProgress
 	select {
-	case info = <-branchChannel:
-		slog.Debug("github pipeline fetcher received message from channel", "msg", info)
+	case info = <-checksChannel:
+		slog.Debug("githubchecks fetcher received message", "msg", info)
 	default: // No data available in channel
 		ntfr.PushOnNextCall = false
 
@@ -75,38 +75,38 @@ type ChecksProgress struct {
 	FailedActions    []string `json:"failedActions"`
 }
 
-// PipelineHandler handles HTTP requests with GitHub checks information.
-func PipelineHandler(rsp http.ResponseWriter, req *http.Request) {
+// Handler receives data from the gh-altar tool and passes it onto Fetcher.
+func Handler(rsp http.ResponseWriter, req *http.Request) {
 	if !channelInitialized {
 		initChannel()
 	}
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		slog.Error("github pipeline listener failed to read body", "error", err)
+		slog.Error("github checks handler failed to read body", "error", err)
 		rsp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	slog.Debug("github pipeline listener received message", "body", string(body))
+	slog.Debug("github checks handler received message", "body", string(body))
 
-	var branch ChecksProgress
-	err = json.Unmarshal(body, &branch)
+	var checks ChecksProgress
+	err = json.Unmarshal(body, &checks)
 
 	if err != nil {
-		slog.Error("github pipeline listener failed to unmarshal request", "error", err)
+		slog.Error("github checks handler failed to unmarshal request", "error", err)
 		rsp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	slog.Debug("github pipeline listener posted message to channel", "msg", branch)
+	slog.Debug("github checks handler posted message to channel", "msg", checks)
 
 	select {
-	case branchChannel <- branch:
+	case checksChannel <- checks:
 	default:
-		slog.Warn("github pipeline channel is full, dropping message")
+		slog.Warn("github checks channel is full, dropping message")
 	}
 
 	rsp.WriteHeader(http.StatusOK)
@@ -115,8 +115,8 @@ func PipelineHandler(rsp http.ResponseWriter, req *http.Request) {
 // Reset clears the state of the channel used to communicate between the api handler and the altar fetcher.
 func Reset() {
 	if channelInitialized {
-		for len(branchChannel) > 0 {
-			<-branchChannel
+		for len(checksChannel) > 0 {
+			<-checksChannel
 		}
 	}
 }
