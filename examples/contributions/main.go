@@ -142,6 +142,8 @@ func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
 			drawing[weeksSinceStartOfMonth] = 2790338 // #2A93C2
 		}
 	}
+	// Contribution grid is in reverse chronological order, we reverse the drawing to match this.
+	slices.Reverse(drawing)
 
 	return application.ImageAndPosition{XPos: 0, Ypos: heightOfDisplay, Width: widthOfDisplay, Height: 1, Image: drawing}
 }
