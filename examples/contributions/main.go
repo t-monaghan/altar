@@ -97,9 +97,9 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 	busiestDay := slices.Max(displayableContributions)
 	transformed := transformRightThenDownToDownThenRight(displayableContributions)
 
-	painted := []int{}
+	painted := make([]int, 224)
 
-	for _, contributionValue := range transformed {
+	for pos, contributionValue := range transformed {
 		var colour int
 
 		switch {
@@ -119,7 +119,7 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 			slog.Error("github contribution count did not bin correctly", "value", contributionValue, "max", busiestDay)
 		}
 
-		painted = append(painted, colour)
+		painted[pos] = colour
 	}
 
 	return application.ImageAndPosition{
