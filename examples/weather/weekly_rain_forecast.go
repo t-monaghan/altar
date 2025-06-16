@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"slices"
@@ -36,7 +35,6 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	query.Add("hourly", "precipitation_probability")
 
 	zone, _ := time.Now().Zone()
-	slog.Info(zone)
 	query.Add("timezone", zone)
 	req.URL.RawQuery = query.Encode()
 

@@ -9,8 +9,8 @@ import (
 	"github.com/t-monaghan/altar/utils"
 )
 
-// RainChanceFetcher displays information about precipitation in Melbourne.
-func RainChanceFetcher(app *application.Application, client *http.Client) error {
+// Fetcher displays information about precipitation in Melbourne.
+func Fetcher(app *application.Application, client *http.Client) error {
 	precip, err := currentPrecipitation(client)
 	if err != nil {
 		return fmt.Errorf("error querying current precipitation: %w", err)
