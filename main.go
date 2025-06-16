@@ -20,10 +20,25 @@ func main() {
 	githubApp := notifier.NewNotifier("github", pipelinewatcher.PipelineFetcher)
 	weatherApp := application.NewApplication("Rain Forecast", weather.RainChanceFetcher)
 
+	listeners := map[string]func(http.ResponseWriter, *http.Request){
+		"/api/pipeline-watcher": pipelinewatcher.PipelineHandler,
+	}
+
 	appList := []utils.AltarHandler{&weatherApp, &githubApp}
 
-	listeners := map[string]func(http.ResponseWriter, *http.Request){
-		"/api/pipeline-watcher": pipelinewatcher.PipelineHandler}
+	requiredEnvVars := []string{"LATITUDE", "LONGITUDE"}
+	missingVars := []string{}
+
+	for _, val := range requiredEnvVars {
+		if os.Getenv(val) == "" {
+			missingVars = append(missingVars, val)
+		}
+	}
+
+	if len(missingVars) > 0 {
+		slog.Error("missing required environment variables", "missing-env-vars", missingVars)
+		os.Exit(1)
+	}
 
 	broker, err := broker.NewBroker(
 		"127.0.0.1",
