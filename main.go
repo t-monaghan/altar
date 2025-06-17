@@ -10,20 +10,20 @@ import (
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
-	"github.com/t-monaghan/altar/examples/contributions"
-	"github.com/t-monaghan/altar/examples/githubchecks"
+	"github.com/t-monaghan/altar/examples/github/checks"
+	"github.com/t-monaghan/altar/examples/github/contributions"
 	precipitation "github.com/t-monaghan/altar/examples/weather"
 	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
 )
 
 func main() {
-	githubChecks := notifier.NewNotifier("github checks", githubchecks.Fetcher)
+	githubChecks := notifier.NewNotifier("github checks", checks.Fetcher)
 	precipitation := application.NewApplication("rain forecast", precipitation.Fetcher)
 	githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
 
 	listeners := map[string]func(http.ResponseWriter, *http.Request){
-		"/api/pipeline-watcher": githubchecks.Handler,
+		"/api/pipeline-watcher": checks.Handler,
 		"/api/contributions":    contributions.Handler,
 	}
 

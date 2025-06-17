@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"time"
 )
 
 func currentPrecipitation(client *http.Client) (float64, error) {
@@ -22,9 +21,6 @@ func currentPrecipitation(client *http.Client) (float64, error) {
 	query.Add("latitude", os.Getenv("LATITUDE"))
 	query.Add("longitude", os.Getenv("LONGITUDE"))
 	query.Add("current", "precipitation")
-
-	zone, _ := time.Now().Zone()
-	query.Add("timezone", zone)
 	req.URL.RawQuery = query.Encode()
 
 	response, err := client.Do(req)
