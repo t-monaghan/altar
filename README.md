@@ -13,6 +13,9 @@ Altar is a library for golang that allows developers to create custom Applicatio
 
 You don't need an awtrix device to run this project. To see it in action you can install [devbox](https://www.jetify.com/devbox/) and run `devbox services up` to see the requests from the example application get captured by a request logger.
 
+> [!NOTE]
+> This project won't run without a file at `.env`, this is an issue I've raised with devbox [here](https://github.com/issues/created?issue=jetify-com%7Cdevbox%7C2504). You can run `cp .env.example .env` to have this file created with some defaults.
+
 ## Using the library
 
 ### Quickstart
