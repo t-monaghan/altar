@@ -1,5 +1,5 @@
-// Package githubchecks provides an example extension of altar's broker server.
-package githubchecks
+// Package checks provides an example extension of altar's broker server.
+package checks
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 
 //nolint:gochecknoglobals
 var (
-	checksChannel      chan ChecksProgress
+	checksChannel      chan Progress
 	once               sync.Once
 	channelInitialized bool
 )
@@ -23,7 +23,7 @@ const channelBufferSize = 5
 
 func initChannel() {
 	once.Do(func() {
-		checksChannel = make(chan ChecksProgress, channelBufferSize)
+		checksChannel = make(chan Progress, channelBufferSize)
 		channelInitialized = true
 	})
 }
@@ -34,7 +34,7 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 		initChannel()
 	}
 
-	var info ChecksProgress
+	var info Progress
 	select {
 	case info = <-checksChannel:
 		slog.Debug("githubchecks fetcher received message", "msg", info)
@@ -68,8 +68,8 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 	return nil
 }
 
-// ChecksProgress represents the progress of required checks for a given PR.
-type ChecksProgress struct {
+// Progress represents the progress of required checks for a given PR.
+type Progress struct {
 	TotalActions     int      `json:"totalActions"`
 	CompletedActions int      `json:"completedActions"`
 	FailedActions    []string `json:"failedActions"`
@@ -91,7 +91,7 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 
 	slog.Debug("github checks handler received message", "body", string(body))
 
-	var checks ChecksProgress
+	var checks Progress
 	err = json.Unmarshal(body, &checks)
 
 	if err != nil {
