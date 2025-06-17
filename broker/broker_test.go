@@ -53,7 +53,7 @@ var empty200Response = &http.Response{
 	Body:       io.NopCloser(bytes.NewBufferString("")),
 }
 
-func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
+func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel,funlen
 	appMsg := "Hello, World!"
 	appName := "test app"
 	toyApp := application.NewApplication(appName,
@@ -73,6 +73,8 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 		}
 
 		brkr.AdminPort = "54322"
+
+		pushRequestCorrect := make(chan bool, 1)
 
 		brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
 			if request.URL.Path == "/api/settings" || request.URL.Path == "/api/reboot" {
@@ -94,20 +96,27 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel
 				t.Fatalf("incorrect query paramater for app name\n\texpected: %v\n\treceived: %v", appName, queries["name"])
 			}
 
+			pushRequestCorrect <- true
+
 			return empty200Response, nil
 		})
 
 		_, cancel := context.WithCancel(t.Context())
-		// TODO: reimplement recover to handle broker panic now that handler func can panic
 		go func() {
 			defer cancel()
 			brkr.Start()
 		}()
 
-		// TODO: how can I have a successful request propagate a "pass" message from the goroutine?
-		// OR is the goroutine the wrong pattern here?
-		time.Sleep(time.Second)
+		select {
+		case rcv := <-pushRequestCorrect:
+			if rcv != true {
+				t.Fatal("push request is incorrect")
+			}
+		case <-time.After(time.Second * 3):
+			t.Fatal("timed out waiting for broker to push message")
+		}
 
+		cancel()
 		shutdownBroker(t, brkr)
 	})
 }
