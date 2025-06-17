@@ -4,6 +4,7 @@ package weather
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/utils"
@@ -38,7 +39,21 @@ func Fetcher(app *application.Application, client *http.Client) error {
 		return nil
 	}
 
-	app.Data.Text = fmt.Sprintf("%v%% %v", nextRain.PrecipitationProbability, nextRain.Time.Format("3PM Mon"))
+	colouredText := []application.TextWithColour{}
+	rainChanceString := strconv.Itoa(nextRain.PrecipitationProbability) + "% "
+
+	const blueHex = "#3396FF"
+
+	const whiteHex = "#FFFFFF"
+
+	colouredText = append(colouredText, application.TextWithColour{
+		Colour: blueHex,
+		Text:   rainChanceString})
+	colouredText = append(colouredText, application.TextWithColour{
+		Colour: whiteHex,
+		Text:   nextRain.Time.Format("3PM Mon")})
+
+	app.Data.Text = colouredText
 
 	return nil
 }
