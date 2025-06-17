@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"time"
 )
 
 func currentPrecipitation(client *http.Client) (float64, error) {
@@ -16,12 +18,14 @@ func currentPrecipitation(client *http.Client) (float64, error) {
 		return 0, fmt.Errorf("error creating request for current precipitation: %w", err)
 	}
 
-	q := req.URL.Query()
-	q.Add("latitude", "-37.814")
-	q.Add("longitude", "144.9633")
-	q.Add("current", "precipitation")
-	q.Add("timezone", "Australia/Sydney")
-	req.URL.RawQuery = q.Encode()
+	query := req.URL.Query()
+	query.Add("latitude", os.Getenv("LATITUDE"))
+	query.Add("longitude", os.Getenv("LONGITUDE"))
+	query.Add("current", "precipitation")
+
+	zone, _ := time.Now().Zone()
+	query.Add("timezone", zone)
+	req.URL.RawQuery = query.Encode()
 
 	response, err := client.Do(req)
 	if err != nil {
