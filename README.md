@@ -74,6 +74,14 @@ go run .
 
 Fetchers with more functionality can be found in the [examples](https://github.com/t-monaghan/altar/tree/main/examples) package.
 
+## Running locally
+
+This project requires some environment variables to be set for it to be run locally, there is an example dotenv file with some defaults to get you started quickly. To use this example you can run `cp .env.example .env`. The required environment variables are explained within this example file.
+
+### Common issues
+
+If you get the error `Error: failed parsing .env file. Error: failed to open file: .../altar/.env` please create a `.env` file with the required environment variables. This can be done with `cp .env.example .env`, then to enter the devbox shell you can run `direnv reload` or `devbox shell`.
+
 ## Contributing
 
 This project is not currently accepting contributions, however I will be streaming my development of this project through a Zed channel [here](https://zed.dev/channel/altar-22876).
