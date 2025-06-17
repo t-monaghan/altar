@@ -16,9 +16,8 @@ import (
 //
 //nolint:lll
 type AppData struct {
-	// includes all fields from docs linked, except for "draw" and "effect settings"
-	// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#json-properties
-	Text         string              `json:"text,omitempty"`
+	// Text can either be a string, or []TextWithColour
+	Text         any                 `json:"text,omitempty"`
 	TextCase     *int                `json:"textCase,omitempty"`
 	TopText      *bool               `json:"topText,omitempty"`
 	TextOffset   *int                `json:"textOffset,omitempty"`
@@ -75,6 +74,13 @@ func (f *ImageAndPosition) MarshalJSON() ([]byte, error) {
 		f.Height,
 		f.Image,
 	})
+}
+
+// TextWithColour represents a portion of text and the colour it should be drawn as.
+type TextWithColour struct {
+	Text string `json:"t,omitempty"`
+	// A colour defined in RGB hex value e.g. #FF0000 for pure red
+	Colour string `json:"c,omitempty"`
 }
 
 // Application is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
