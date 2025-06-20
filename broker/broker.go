@@ -243,7 +243,6 @@ func (b *HTTPBroker) sendConfig() error {
 // request.
 var ErrUnknownHandlerType = errors.New("unknown handler type")
 
-//nolint:cyclop
 func (b *HTTPBroker) push(handler utils.AltarHandler) error {
 	if !handler.ShouldPushToAwtrix() {
 		slog.Debug("skipping push for handler", "handler", handler.GetName())
@@ -273,31 +272,40 @@ func (b *HTTPBroker) push(handler utils.AltarHandler) error {
 		return fmt.Errorf("%w for handler: %v", ErrUnknownHandlerType, handler.GetName())
 	}
 
+	err = b.postRequestToAwtrix(address, bufferedJSON, handler.GetName())
+	if err != nil {
+		return err
+	}
+
+	slog.Debug("pushed", "handler-name", handler.GetName())
+
+	return err
+}
+
+func (b *HTTPBroker) postRequestToAwtrix(address string, bufferedJSON *bytes.Buffer, handlerName string) error {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
 	if err != nil {
-		return fmt.Errorf("failed to create post request for %v: %w", handler.GetName(), err)
+		return fmt.Errorf("failed to create post request for %v: %w", handlerName, err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := b.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform post request for %v: %w", handler.GetName(), err)
+		return fmt.Errorf("failed to perform post request for %v: %w", handlerName, err)
 	}
 
 	defer func() {
 		closeErr := resp.Body.Close()
 		if err == nil && closeErr != nil {
-			err = fmt.Errorf("%w for handler %v: %w", utils.ErrClosingResponseBody, handler.GetName(), closeErr)
+			err = fmt.Errorf("%w for handler %v: %w", utils.ErrClosingResponseBody, handlerName, closeErr)
 		}
 	}()
 
 	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
 		slog.Error("awtrix has responded to push with non-2xx http response",
-			"http-status", resp.Status, "handler", handler.GetName())
+			"http-status", resp.Status, "handler", handlerName)
 	}
-
-	slog.Debug("pushed", "handler-name", handler.GetName())
 
 	return err
 }
