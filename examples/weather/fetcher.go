@@ -12,6 +12,8 @@ import (
 )
 
 // Fetcher displays information about precipitation in Melbourne.
+//
+//nolint:funlen
 func Fetcher(app *application.Application, client *http.Client) error {
 	precip, err := currentPrecipitation(client)
 	if err != nil {
