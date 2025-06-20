@@ -19,12 +19,14 @@ linters:
     tagliatelle:
       case:
         overrides:
-          - pkg: utils/awtrix
-            rules:
-              json: upper # reason: this is to adhere to awtrix's specification
+          # reason: this is to adhere to open-meteo's specification
           - pkg: examples/weather
             rules:
-              json: snake # reason: this is to adhere to open-meteo's specification
+              json: snake
+          # reason: this mix of cases is defined by awtrix's API specification
+          - pkg: utils/awtrix
+            rules:
+              json: upper
           - pkg: application
             rules:
               json: camel
