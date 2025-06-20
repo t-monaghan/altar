@@ -16,7 +16,7 @@ type Config struct {
 // Overlay represents the enumarable options for Awtrix app and global overlays.
 type Overlay string
 
-//nolint:revive
+//nolint:revive //reason: the overlays are self-descriptive
 const (
 	Rain  Overlay = "rain"
 	Clear Overlay = "clear"
