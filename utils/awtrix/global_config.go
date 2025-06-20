@@ -1,7 +1,8 @@
-package utils
+// Package awtrix provides utilities for awtrix related logic.
+package awtrix
 
-// AwtrixConfig defines the configuration Altar can perform on an Awtrix device.
-type AwtrixConfig struct {
+// Config defines the configuration Altar can perform on an Awtrix device.
+type Config struct {
 	// https://blueforcer.github.io/awtrix3/#/api?id=json-properties-1
 	TimeAppEnabled     *bool   `json:"TIM,omitempty"`
 	WeekdayAppEnabled  *bool   `json:"WD,omitempty"`
@@ -15,7 +16,7 @@ type AwtrixConfig struct {
 // Overlay represents the enumarable options for Awtrix app and global overlays.
 type Overlay string
 
-//nolint:revive
+//nolint:revive //reason: the overlays are self-descriptive
 const (
 	Rain  Overlay = "rain"
 	Clear Overlay = "clear"

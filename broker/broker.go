@@ -22,6 +22,7 @@ import (
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
+	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
 // MinLoopTime is the minimum time the broker will spend between iterations of fetching and pushing updates.
@@ -53,7 +54,7 @@ type HTTPBroker struct {
 	clockAddress  string
 	Client        *http.Client
 	Debug         bool
-	DisplayConfig utils.AwtrixConfig
+	DisplayConfig awtrix.Config
 	AdminPort     string
 	listeners     map[string]func(http.ResponseWriter, *http.Request)
 }
@@ -69,7 +70,7 @@ func NewBroker(
 	addr string,
 	applications []utils.AltarHandler,
 	listeners map[string]func(http.ResponseWriter, *http.Request),
-	options ...func(*utils.AwtrixConfig),
+	options ...func(*awtrix.Config),
 ) (*HTTPBroker, error) {
 	if len(applications) == 0 {
 		return nil, ErrBrokerHasNoApplications
@@ -80,7 +81,7 @@ func NewBroker(
 		return nil, ErrIPNotValid
 	}
 
-	cfg := utils.AwtrixConfig{}
+	cfg := awtrix.Config{}
 	for _, option := range options {
 		option(&cfg)
 	}
@@ -182,9 +183,6 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 			slog.Error("error changing awtrix settings", "error", err)
 		}
 
-		// TODO: decide if push should be sent as batch request, or similarly to above with goroutines
-		// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#sending-multiple-custom-apps-simultaneously
-		// TODO: decide if apps should be pushed as soon as they're fetched
 		for _, app := range brkr.handlers {
 			err := brkr.push(app)
 			if err != nil {
@@ -245,7 +243,6 @@ func (b *HTTPBroker) sendConfig() error {
 // request.
 var ErrUnknownHandlerType = errors.New("unknown handler type")
 
-//nolint:cyclop
 func (b *HTTPBroker) push(handler utils.AltarHandler) error {
 	if !handler.ShouldPushToAwtrix() {
 		slog.Debug("skipping push for handler", "handler", handler.GetName())
@@ -275,31 +272,40 @@ func (b *HTTPBroker) push(handler utils.AltarHandler) error {
 		return fmt.Errorf("%w for handler: %v", ErrUnknownHandlerType, handler.GetName())
 	}
 
+	err = b.postRequestToAwtrix(address, bufferedJSON, handler.GetName())
+	if err != nil {
+		return err
+	}
+
+	slog.Debug("pushed", "handler-name", handler.GetName())
+
+	return err
+}
+
+func (b *HTTPBroker) postRequestToAwtrix(address string, bufferedJSON *bytes.Buffer, handlerName string) error {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
 	if err != nil {
-		return fmt.Errorf("failed to create post request for %v: %w", handler.GetName(), err)
+		return fmt.Errorf("failed to create post request for %v: %w", handlerName, err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := b.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform post request for %v: %w", handler.GetName(), err)
+		return fmt.Errorf("failed to perform post request for %v: %w", handlerName, err)
 	}
 
 	defer func() {
 		closeErr := resp.Body.Close()
 		if err == nil && closeErr != nil {
-			err = fmt.Errorf("%w for handler %v: %w", utils.ErrClosingResponseBody, handler.GetName(), closeErr)
+			err = fmt.Errorf("%w for handler %v: %w", utils.ErrClosingResponseBody, handlerName, closeErr)
 		}
 	}()
 
 	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
 		slog.Error("awtrix has responded to push with non-2xx http response",
-			"http-status", resp.Status, "handler", handler.GetName())
+			"http-status", resp.Status, "handler", handlerName)
 	}
-
-	slog.Debug("pushed", "handler-name", handler.GetName())
 
 	return err
 }
@@ -379,10 +385,8 @@ func (b *HTTPBroker) rebootAwtrix() error {
 	return err
 }
 
-// TODO: remove this, have apps return a method which is performed on the config a la the blog post
-// mergeConfig will only merge options considered worth changing at runtime.
-func mergeConfig(left utils.AwtrixConfig, right utils.AwtrixConfig) utils.AwtrixConfig {
-	keep := utils.AwtrixConfig{}
+func mergeConfig(left awtrix.Config, right awtrix.Config) awtrix.Config {
+	keep := awtrix.Config{}
 	if right.Overlay != "" {
 		keep.Overlay = right.Overlay
 	} else if left.Overlay != "" {
