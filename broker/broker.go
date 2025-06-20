@@ -162,6 +162,12 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 			go func(app utils.AltarHandler) {
 				defer fetchGroup.Done()
 
+				defer func() {
+					if r := recover(); r != nil {
+						slog.Error("broker has recovered from fetcher panicking", "error", r)
+					}
+				}()
+
 				err := app.Fetch(brkr.Client)
 				if err != nil {
 					slog.Error("error encountered in fetching", "app", app.GetName(), "error", err)
