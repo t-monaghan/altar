@@ -1,11 +1,13 @@
 package application
 
-import "github.com/t-monaghan/altar/utils"
+import (
+	"github.com/t-monaghan/altar/utils/awtrix"
+)
 
 // DisableAllDefaultApps configures the broker to diable all default apps on startup.
-func DisableAllDefaultApps() func(*utils.AwtrixConfig) {
-	return func(cfg *utils.AwtrixConfig) {
-		defaultApps := []func(*utils.AwtrixConfig){
+func DisableAllDefaultApps() func(*awtrix.Config) {
+	return func(cfg *awtrix.Config) {
+		defaultApps := []func(*awtrix.Config){
 			DisableDefaultTimeApp(),
 			DisableDefaultWeekdayApp(),
 			DisableDefaultDateApp(),
@@ -20,48 +22,48 @@ func DisableAllDefaultApps() func(*utils.AwtrixConfig) {
 }
 
 // DisableDefaultTimeApp disables the default time app on the awtrix display on broker startup.
-func DisableDefaultTimeApp() func(*utils.AwtrixConfig) {
-	return func(cfg *utils.AwtrixConfig) {
+func DisableDefaultTimeApp() func(*awtrix.Config) {
+	return func(cfg *awtrix.Config) {
 		disable := false
 		cfg.TimeAppEnabled = &disable
 	}
 }
 
 // DisableDefaultWeekdayApp disables the default time app on the awtrix display on broker startup.
-func DisableDefaultWeekdayApp() func(*utils.AwtrixConfig) {
-	return func(cfg *utils.AwtrixConfig) {
+func DisableDefaultWeekdayApp() func(*awtrix.Config) {
+	return func(cfg *awtrix.Config) {
 		disable := false
 		cfg.WeekdayAppEnabled = &disable
 	}
 }
 
 // DisableDefaultDateApp disables the default date app on the awtrix display on broker startup.
-func DisableDefaultDateApp() func(*utils.AwtrixConfig) {
-	return func(cfg *utils.AwtrixConfig) {
+func DisableDefaultDateApp() func(*awtrix.Config) {
+	return func(cfg *awtrix.Config) {
 		disable := false
 		cfg.DateAppEnabled = &disable
 	}
 }
 
 // DisableDefaultHumidityApp disables the default humidity app on the awtrix display on broker startup.
-func DisableDefaultHumidityApp() func(*utils.AwtrixConfig) {
-	return func(cfg *utils.AwtrixConfig) {
+func DisableDefaultHumidityApp() func(*awtrix.Config) {
+	return func(cfg *awtrix.Config) {
 		disable := false
 		cfg.HumidityAppEnabled = &disable
 	}
 }
 
 // DisableDefaultTempApp disables the default temperature app on the awtrix display on broker startup.
-func DisableDefaultTempApp() func(*utils.AwtrixConfig) {
-	return func(cfg *utils.AwtrixConfig) {
+func DisableDefaultTempApp() func(*awtrix.Config) {
+	return func(cfg *awtrix.Config) {
 		disable := false
 		cfg.TempAppEnabled = &disable
 	}
 }
 
 // DisableDefaultBatteryApp disables the default battery app on the awtrix display on broker startup.
-func DisableDefaultBatteryApp() func(*utils.AwtrixConfig) {
-	return func(cfg *utils.AwtrixConfig) {
+func DisableDefaultBatteryApp() func(*awtrix.Config) {
+	return func(cfg *awtrix.Config) {
 		disable := false
 		cfg.BatteryAppEnabled = &disable
 	}

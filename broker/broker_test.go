@@ -14,6 +14,7 @@ import (
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
 	"github.com/t-monaghan/altar/utils"
+	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
 func Test_InvalidBrokerInstantiation(t *testing.T) {
@@ -137,7 +138,7 @@ func Test_BrokerSetsConfig(t *testing.T) {
 
 	cases := []struct {
 		description string
-		configFn    func() func(*utils.AwtrixConfig)
+		configFn    func() func(*awtrix.Config)
 		expected    string
 		port        string
 	}{

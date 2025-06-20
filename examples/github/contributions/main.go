@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"cloud.google.com/go/civil"
 	"github.com/t-monaghan/altar/application"
 )
 
@@ -22,7 +21,7 @@ var (
 	channelInitialized   bool
 )
 
-// Handler is receives contributions data from `gh altar contributions` and passes it to Fetcher.
+// Handler receives contributions data from `gh altar contributions` and passes it to Fetcher.
 func Handler(rsp http.ResponseWriter, req *http.Request) {
 	if !channelInitialized {
 		initChannel()
@@ -132,19 +131,24 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 }
 
 const blueRawVal = 2790338 // #2A93C2
+const hoursInADay = 24
 
 func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
-	todaysDate := civil.DateOf(time.Now())
-	startOfThisMonth := civil.Date{Year: todaysDate.Year, Month: todaysDate.Month, Day: 1}
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	startOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	drawing := make([]int, widthOfDisplay)
 
 	for i := range 8 {
-		weeksSinceStartOfMonth := todaysDate.DaysSince(startOfThisMonth.AddMonths(-i)) / daysInAWeek
+		pastMonthStart := startOfThisMonth.AddDate(0, -i, 0)
+		daysSince := int(today.Sub(pastMonthStart).Hours() / hoursInADay)
+
+		weeksSinceStartOfMonth := daysSince / daysInAWeek
 		if weeksSinceStartOfMonth < widthOfDisplay {
 			drawing[weeksSinceStartOfMonth] = blueRawVal
 		}
 	}
-	// Contribution grid is in reverse chronological order, we reverse the drawing to match this.
+	// contribution grid is in reverse chronological order, we reverse the drawing to match this.
 	slices.Reverse(drawing)
 
 	return application.ImageAndPosition{XPos: 0, Ypos: heightOfDisplay, Width: widthOfDisplay, Height: 1, Image: drawing}

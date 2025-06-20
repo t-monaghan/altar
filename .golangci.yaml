@@ -3,10 +3,41 @@ version: "2"
 linters:
   default: all
   disable:
-    - depguard
-    - godox
-    - exhaustruct
-    - tagliatelle
+    - godox # reason: I have a practice of using TODO's and checking them in for personal projects
+    - exhaustruct # reason: the structs for Application and Notifier are extensive and falling back on nil values is the intended behaviour
   exclusions:
     paths:
-      - cmd/request_logger/*
+      - cmd/request_logger/* # reason: this is a debugger intended for development and I want it to be good not perfect
+  settings:
+    depguard:
+      rules:
+        Main:
+          list-mode: strict
+          allow:
+            - $gostd
+            - github.com/t-monaghan/altar
+    tagliatelle:
+      case:
+        overrides:
+          - pkg: utils/awtrix
+            rules:
+              json: upper # reason: this is to adhere to awtrix's specification
+          - pkg: examples/weather
+            rules:
+              json: snake # reason: this is to adhere to open-meteo's specification
+          - pkg: application
+            rules:
+              json: camel
+            extended-rules:
+              json:
+                case: camel
+                initialism-overrides:
+                  BC: true
+          - pkg: notifier
+            rules:
+              json: camel
+            extended-rules:
+              json:
+                case: camel
+                initialism-overrides:
+                  BC: true

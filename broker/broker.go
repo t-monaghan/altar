@@ -22,6 +22,7 @@ import (
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
+	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
 // MinLoopTime is the minimum time the broker will spend between iterations of fetching and pushing updates.
@@ -53,7 +54,7 @@ type HTTPBroker struct {
 	clockAddress  string
 	Client        *http.Client
 	Debug         bool
-	DisplayConfig utils.AwtrixConfig
+	DisplayConfig awtrix.Config
 	AdminPort     string
 	listeners     map[string]func(http.ResponseWriter, *http.Request)
 }
@@ -69,7 +70,7 @@ func NewBroker(
 	addr string,
 	applications []utils.AltarHandler,
 	listeners map[string]func(http.ResponseWriter, *http.Request),
-	options ...func(*utils.AwtrixConfig),
+	options ...func(*awtrix.Config),
 ) (*HTTPBroker, error) {
 	if len(applications) == 0 {
 		return nil, ErrBrokerHasNoApplications
@@ -80,7 +81,7 @@ func NewBroker(
 		return nil, ErrIPNotValid
 	}
 
-	cfg := utils.AwtrixConfig{}
+	cfg := awtrix.Config{}
 	for _, option := range options {
 		option(&cfg)
 	}
@@ -381,8 +382,8 @@ func (b *HTTPBroker) rebootAwtrix() error {
 
 // TODO: remove this, have apps return a method which is performed on the config a la the blog post
 // mergeConfig will only merge options considered worth changing at runtime.
-func mergeConfig(left utils.AwtrixConfig, right utils.AwtrixConfig) utils.AwtrixConfig {
-	keep := utils.AwtrixConfig{}
+func mergeConfig(left awtrix.Config, right awtrix.Config) awtrix.Config {
+	keep := awtrix.Config{}
 	if right.Overlay != "" {
 		keep.Overlay = right.Overlay
 	} else if left.Overlay != "" {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/t-monaghan/altar/utils"
+	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
 // AppData is Altar's presentation of a custom Awtrix application.
@@ -45,7 +46,7 @@ type AppData struct {
 	NoScroll     *bool               `json:"noScroll,omitempty"`
 	ScrollSpeed  *int                `json:"scrollSpeed,omitempty"`
 	Effect       string              `json:"effect,omitempty"`
-	Overlay      utils.Overlay       `json:"overlay,omitempty"`
+	Overlay      awtrix.Overlay      `json:"overlay,omitempty"`
 	Draw         *[]DrawInstructions `json:"draw,omitempty"`
 }
 
@@ -88,7 +89,7 @@ type Application struct {
 	Name           string
 	fetcher        func(*Application, *http.Client) error
 	Data           AppData
-	GlobalConfig   utils.AwtrixConfig
+	GlobalConfig   awtrix.Config
 	PollRate       time.Duration
 	lastPolled     time.Time
 	PushOnNextCall bool
@@ -101,7 +102,7 @@ func NewApplication(name string, fetcher func(*Application, *http.Client) error)
 		Name:           name,
 		fetcher:        fetcher,
 		Data:           AppData{},
-		GlobalConfig:   utils.AwtrixConfig{},
+		GlobalConfig:   awtrix.Config{},
 		PollRate:       utils.DefaultPollRate,
 		PushOnNextCall: false,
 	}
@@ -157,6 +158,6 @@ func (a *Application) GetData() any {
 }
 
 // GetGlobalConfig returns the global awtrix config this application has set.
-func (a *Application) GetGlobalConfig() utils.AwtrixConfig {
+func (a *Application) GetGlobalConfig() awtrix.Config {
 	return a.GlobalConfig
 }

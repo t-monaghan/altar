@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/t-monaghan/altar/utils"
+	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
 // Notifier is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
@@ -14,7 +15,7 @@ type Notifier struct {
 	Name           string
 	fetcher        func(*Notifier, *http.Client) error
 	Data           *NotificationData
-	GlobalConfig   utils.AwtrixConfig
+	GlobalConfig   awtrix.Config
 	PollRate       time.Duration
 	HTTPClient     *http.Client
 	PushOnNextCall bool
@@ -26,7 +27,7 @@ func NewNotifier(name string, fetcher func(*Notifier, *http.Client) error) Notif
 	return Notifier{
 		Name:           name,
 		Data:           &NotificationData{},
-		GlobalConfig:   utils.AwtrixConfig{},
+		GlobalConfig:   awtrix.Config{},
 		PollRate:       utils.DefaultPollRate,
 		PushOnNextCall: false,
 		fetcher:        fetcher,
@@ -52,39 +53,39 @@ func (n *Notifier) Fetch(client *http.Client) error {
 
 // NotificationData is Altar's presentation of a custom Awtrix notification.
 type NotificationData struct {
-	Text        string        `json:"text,omitempty"`
-	TextCase    *int          `json:"textCase,omitempty"`
-	TopText     *bool         `json:"topText,omitempty"`
-	TextOffset  *int          `json:"textOffset,omitempty"`
-	Center      *bool         `json:"center,omitempty"`
-	Color       []int         `json:"color,omitempty"`    // RGB color values [R,G,B]
-	Gradient    [][]int       `json:"gradient,omitempty"` // Array of RGB colors [[R,G,B], [R,G,B]]
-	BlinkText   *int          `json:"blinkText,omitempty"`
-	FadeText    *int          `json:"fadeText,omitempty"`
-	Background  []int         `json:"background,omitempty"` // RGB color values [R,G,B]
-	Rainbow     *bool         `json:"rainbow,omitempty"`
-	Icon        string        `json:"icon,omitempty"`
-	PushIcon    *int          `json:"pushIcon,omitempty"`
-	Repeat      *int          `json:"repeat,omitempty"`
-	Duration    *int          `json:"duration,omitempty"`
-	Hold        *bool         `json:"hold,omitempty"`
-	Sound       string        `json:"sound,omitempty"`
-	Rtttl       string        `json:"rtttl,omitempty"`
-	LoopSound   *bool         `json:"loopSound,omitempty"`
-	Bar         []int         `json:"bar,omitempty"`
-	Line        []int         `json:"line,omitempty"`
-	Autoscale   *bool         `json:"autoscale,omitempty"`
-	BarBC       []int         `json:"barBC,omitempty"` // RGB color values [R,G,B]
-	Progress    *int          `json:"progress,omitempty"`
-	ProgressC   []int         `json:"progressC,omitempty"`  // RGB color values [R,G,B]
-	ProgressBC  []int         `json:"progressBC,omitempty"` // RGB color values [R,G,B]
-	Stack       *bool         `json:"stack,omitempty"`
-	Wakeup      *bool         `json:"wakeup,omitempty"`
-	NoScroll    *bool         `json:"noScroll,omitempty"`
-	Clients     []string      `json:"clients,omitempty"`
-	ScrollSpeed *int          `json:"scrollSpeed,omitempty"`
-	Effect      string        `json:"effect,omitempty"`
-	Overlay     utils.Overlay `json:"overlay,omitempty"`
+	Text        string         `json:"text,omitempty"`
+	TextCase    *int           `json:"textCase,omitempty"`
+	TopText     *bool          `json:"topText,omitempty"`
+	TextOffset  *int           `json:"textOffset,omitempty"`
+	Center      *bool          `json:"center,omitempty"`
+	Color       []int          `json:"color,omitempty"`    // RGB color values [R,G,B]
+	Gradient    [][]int        `json:"gradient,omitempty"` // Array of RGB colors [[R,G,B], [R,G,B]]
+	BlinkText   *int           `json:"blinkText,omitempty"`
+	FadeText    *int           `json:"fadeText,omitempty"`
+	Background  []int          `json:"background,omitempty"` // RGB color values [R,G,B]
+	Rainbow     *bool          `json:"rainbow,omitempty"`
+	Icon        string         `json:"icon,omitempty"`
+	PushIcon    *int           `json:"pushIcon,omitempty"`
+	Repeat      *int           `json:"repeat,omitempty"`
+	Duration    *int           `json:"duration,omitempty"`
+	Hold        *bool          `json:"hold,omitempty"`
+	Sound       string         `json:"sound,omitempty"`
+	Rtttl       string         `json:"rtttl,omitempty"`
+	LoopSound   *bool          `json:"loopSound,omitempty"`
+	Bar         []int          `json:"bar,omitempty"`
+	Line        []int          `json:"line,omitempty"`
+	Autoscale   *bool          `json:"autoscale,omitempty"`
+	BarBC       []int          `json:"barBC,omitempty"` // RGB color values [R,G,B]
+	Progress    *int           `json:"progress,omitempty"`
+	ProgressC   []int          `json:"progressC,omitempty"`  // RGB color values [R,G,B]
+	ProgressBC  []int          `json:"progressBC,omitempty"` // RGB color values [R,G,B]
+	Stack       *bool          `json:"stack,omitempty"`
+	Wakeup      *bool          `json:"wakeup,omitempty"`
+	NoScroll    *bool          `json:"noScroll,omitempty"`
+	Clients     []string       `json:"clients,omitempty"`
+	ScrollSpeed *int           `json:"scrollSpeed,omitempty"`
+	Effect      string         `json:"effect,omitempty"`
+	Overlay     awtrix.Overlay `json:"overlay,omitempty"`
 }
 
 // GetName returns the notifier's name.
@@ -103,7 +104,7 @@ func (n *Notifier) GetData() any {
 }
 
 // GetGlobalConfig returns the global config this notifier wishes to manipulate.
-func (n *Notifier) GetGlobalConfig() utils.AwtrixConfig {
+func (n *Notifier) GetGlobalConfig() awtrix.Config {
 	return n.GlobalConfig
 }
 
