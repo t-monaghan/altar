@@ -14,8 +14,6 @@ import (
 )
 
 // AppData is Altar's presentation of a custom Awtrix application.
-//
-//nolint:lll
 type AppData struct {
 	// Text can either be a string, or []TextWithColour
 	Text         any                 `json:"text,omitempty"`
@@ -42,7 +40,7 @@ type AppData struct {
 	ProgressBC   []int               `json:"progressBC,omitempty"` // RGB color values [R,G,B]
 	Pos          *int                `json:"pos,omitempty"`
 	Lifetime     *int                `json:"lifetime,omitempty"`
-	LifetimeMode *int                `json:"lifetimeMode,omitempty"` // TODO: check nil = shows the app, 0 = deletes the app, 1 = marks it as staled with a red rectangle around the app.
+	LifetimeMode *int                `json:"lifetimeMode,omitempty"`
 	NoScroll     *bool               `json:"noScroll,omitempty"`
 	ScrollSpeed  *int                `json:"scrollSpeed,omitempty"`
 	Effect       string              `json:"effect,omitempty"`

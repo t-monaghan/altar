@@ -187,7 +187,6 @@ func Test_BrokerSetsConfig(t *testing.T) {
 			})
 
 			_, cancel := context.WithCancel(t.Context())
-			// TODO: reimplement recover to handle broker panic now that handler func can panic
 			go func() {
 				defer cancel()
 				brkr.Start()

@@ -183,9 +183,6 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 			slog.Error("error changing awtrix settings", "error", err)
 		}
 
-		// TODO: decide if push should be sent as batch request, or similarly to above with goroutines
-		// https://github.com/Blueforcer/awtrix3/blob/main/docs/api.md#sending-multiple-custom-apps-simultaneously
-		// TODO: decide if apps should be pushed as soon as they're fetched
 		for _, app := range brkr.handlers {
 			err := brkr.push(app)
 			if err != nil {
@@ -380,8 +377,6 @@ func (b *HTTPBroker) rebootAwtrix() error {
 	return err
 }
 
-// TODO: remove this, have apps return a method which is performed on the config a la the blog post
-// mergeConfig will only merge options considered worth changing at runtime.
 func mergeConfig(left awtrix.Config, right awtrix.Config) awtrix.Config {
 	keep := awtrix.Config{}
 	if right.Overlay != "" {
