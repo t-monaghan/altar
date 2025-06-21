@@ -11,9 +11,10 @@ import (
 	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
+const blueHex = "#3396FF"
+const whiteHex = "#FFFFFF"
+
 // Fetcher displays information about precipitation in Melbourne.
-//
-//nolint:funlen
 func Fetcher(app *application.Application, client *http.Client) error {
 	precip, err := currentPrecipitation(client)
 	if err != nil {
@@ -44,10 +45,6 @@ func Fetcher(app *application.Application, client *http.Client) error {
 
 	colouredText := []application.TextWithColour{}
 	rainChanceString := strconv.Itoa(nextRain.PrecipitationProbability) + "% "
-
-	const blueHex = "#3396FF"
-
-	const whiteHex = "#FFFFFF"
 
 	colouredText = append(colouredText, application.TextWithColour{
 		Colour: blueHex,
