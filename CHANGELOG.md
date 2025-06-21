@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/t-monaghan/altar/compare/v0.2.0...v0.2.1) (2025-06-21)
+
+
+### Bug Fixes
+
+* removes linting exclusions from the core library ([#36](https://github.com/t-monaghan/altar/issues/36)) ([ac732a3](https://github.com/t-monaghan/altar/commit/ac732a32c5e6b2e6ef2a6cc536bb6da8f34a32f1))
+
 ## [0.2.0](https://github.com/t-monaghan/altar/compare/v0.1.0...v0.2.0) (2025-06-20)
 
 
