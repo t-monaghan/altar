@@ -1,7 +1,7 @@
 // Package awtrix provides utilities for awtrix related logic.
 package awtrix
 
-// Config defines the configuration Altar can perform on an Awtrix device.
+// Config defines the standard configuration of an Awtrix device.
 type Config struct {
 	// https://blueforcer.github.io/awtrix3/#/api?id=json-properties-1
 	TimeAppEnabled     *bool   `json:"TIM,omitempty"`

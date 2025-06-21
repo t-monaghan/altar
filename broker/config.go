@@ -1,4 +1,4 @@
-package application
+package broker
 
 import (
 	"github.com/t-monaghan/altar/utils/awtrix"
