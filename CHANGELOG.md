@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/t-monaghan/altar/compare/v0.2.1...v1.0.0) (2025-06-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* adds button callback example, moves awtrix config into broker package ([#38](https://github.com/t-monaghan/altar/issues/38))
+
+### Features
+
+* adds button callback example, moves awtrix config into broker package ([#38](https://github.com/t-monaghan/altar/issues/38)) ([66c3497](https://github.com/t-monaghan/altar/commit/66c34974f1ba6f927a7e4dd801a32babe8542164))
+
 ## [0.2.1](https://github.com/t-monaghan/altar/compare/v0.2.0...v0.2.1) (2025-06-21)
 
 
