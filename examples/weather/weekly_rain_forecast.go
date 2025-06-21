@@ -21,7 +21,6 @@ type HourlyForecast struct {
 // ErrEmptyResponse describes when the weather api returns an empty body.
 var ErrEmptyResponse = errors.New("did not receive a response body from weather api")
 
-//nolint:funlen
 func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	req, err := http.NewRequestWithContext(context.Background(),
 		http.MethodGet, "https://api.open-meteo.com/v1/forecast", nil)
@@ -50,16 +49,9 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 		}
 	}()
 
-	body, err := io.ReadAll(response.Body)
+	forecast, err := readForecastResponse(response)
 	if err != nil {
-		return HourlyForecast{}, false, fmt.Errorf("error reading response of rain forecast: %w", err)
-	}
-
-	forecast := &forecastResponse{}
-	err = json.Unmarshal(body, forecast)
-
-	if err != nil {
-		return HourlyForecast{}, false, fmt.Errorf("failed to unmarshal rain forecast: %w", err)
+		return HourlyForecast{}, false, fmt.Errorf("error reading forecast response: %w", err)
 	}
 
 	if len(forecast.Hourly.PrecipitationProbability) == 0 {
@@ -97,6 +89,22 @@ type forecastResponse struct {
 	Elevation            float64                `json:"elevation"`
 	HourlyUnits          hourlyUnits            `json:"hourly_units"`
 	Hourly               hourlyForecastResponse `json:"hourly"`
+}
+
+func readForecastResponse(response *http.Response) (*forecastResponse, error) {
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response of rain forecast: %w", err)
+	}
+
+	forecast := &forecastResponse{}
+
+	err = json.Unmarshal(body, forecast)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal rain forecast: %w", err)
+	}
+
+	return forecast, nil
 }
 
 type hourlyUnits struct {

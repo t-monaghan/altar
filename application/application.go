@@ -5,6 +5,7 @@ package application
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -63,16 +64,19 @@ type ImageAndPosition struct {
 }
 
 // MarshalJSON is used here as ImageAndPosition has a curious format defined by awtrix.
-//
-//nolint:wrapcheck //MarshalJSON is being overloaded, so we have no error to wrap around the returned error.
 func (f *ImageAndPosition) MarshalJSON() ([]byte, error) {
-	return json.Marshal([]any{
+	data, err := json.Marshal([]any{
 		f.XPos,
 		f.Ypos,
 		f.Width,
 		f.Height,
 		f.Image,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal ImageAndPosition into json: %w", err)
+	}
+
+	return data, nil
 }
 
 // TextWithColour represents a portion of text and the colour it should be drawn as.

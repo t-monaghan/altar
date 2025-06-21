@@ -48,22 +48,19 @@ func Test_InvalidBrokerInstantiation(t *testing.T) {
 	}
 }
 
-//nolint:gochecknoglobals
-var empty200Response = &http.Response{
-	StatusCode: http.StatusOK,
-	Body:       io.NopCloser(bytes.NewBufferString("")),
+func empty200Response() *http.Response {
+	empty200Response := http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewBufferString("")),
+	}
+
+	return &empty200Response
 }
 
-func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel,funlen
-	appMsg := "Hello, World!"
-	appName := "test app"
-	toyApp := application.NewApplication(appName,
-		func(a *application.Application, _ *http.Client) error {
-			a.Data.Text = appMsg
+func Test_BrokerHandlesRequests(t *testing.T) {
+	t.Parallel()
 
-			return nil
-		})
-	toyAppList := []utils.AltarHandler{&toyApp}
+	appMsg, appName, toyAppList := setupBrokerHandlesRequest(t)
 
 	t.Run("broker executes handler requests", func(t *testing.T) {
 		t.Parallel()
@@ -79,7 +76,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel,funlen
 
 		brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
 			if request.URL.Path == "/api/settings" || request.URL.Path == "/api/reboot" {
-				return empty200Response, nil
+				return empty200Response(), nil
 			}
 
 			body, err := io.ReadAll(request.Body)
@@ -99,7 +96,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel,funlen
 
 			pushRequestCorrect <- true
 
-			return empty200Response, nil
+			return empty200Response(), nil
 		})
 
 		_, cancel := context.WithCancel(t.Context())
@@ -122,9 +119,8 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel,funlen
 	})
 }
 
-//nolint:funlen
-func Test_BrokerSetsConfig(t *testing.T) {
-	t.Parallel()
+func setupBrokerHandlesRequest(t *testing.T) (string, string, []utils.AltarHandler) {
+	t.Helper()
 
 	appMsg := "Hello, World!"
 	appName := "test app"
@@ -136,76 +132,105 @@ func Test_BrokerSetsConfig(t *testing.T) {
 		})
 	toyAppList := []utils.AltarHandler{&toyApp}
 
+	return appMsg, appName, toyAppList
+}
+
+func Test_BrokerSetsConfig(t *testing.T) {
+	t.Parallel()
+
+	_, _, toyAppList := setupBrokerHandlesRequest(t)
+
 	cases := []struct {
 		description string
 		configFn    func() func(*awtrix.Config)
 		expected    string
 		port        string
 	}{
-		{"some description", application.DisableDefaultTimeApp, "{\"TIM\":false}", "43324"},
-		{"disable all default apps", application.DisableAllDefaultApps,
-			"{\"TIM\":false,\"WD\":false,\"DAT\":false,\"HUM\":false,\"TEMP\":false,\"BAT\":false}", "43325"},
+		{
+			description: "broker disables default time app",
+			configFn:    application.DisableDefaultTimeApp,
+			expected:    "{\"TIM\":false}",
+			port:        "43324",
+		},
+		{
+			description: "broker disables all default apps",
+			configFn:    application.DisableAllDefaultApps,
+			expected:    "{\"TIM\":false,\"WD\":false,\"DAT\":false,\"HUM\":false,\"TEMP\":false,\"BAT\":false}",
+			port:        "43325",
+		},
 	}
+
 	for _, testCase := range cases {
 		t.Run(testCase.description, func(t *testing.T) {
 			t.Parallel()
 
-			configRequestReceived := make(chan struct{})
-			configRequestCorrect := make(chan bool, 1)
-
-			brkr, err := broker.NewBroker("127.0.0.1", toyAppList,
-				map[string]func(http.ResponseWriter, *http.Request){}, testCase.configFn())
-			if err != nil {
-				t.Fatalf("should not throw error creating broker\n\treceived error: %v", err)
-			}
-
-			brkr.AdminPort = testCase.port
-
-			var settingsRequestCount int32
-
-			brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
-				// we only care about the first settings request (initial config)
-				if request.URL.Path == "/api/settings" && atomic.AddInt32(&settingsRequestCount, 1) == 1 {
-					body, err := io.ReadAll(request.Body)
-					if err != nil {
-						t.Fatalf("failed reading body of broker request\n\terror: %v", err)
-					}
-
-					configRequestCorrect <- string(body) == testCase.expected
-
-					close(configRequestReceived)
-
-					if string(body) != testCase.expected {
-						t.Logf(
-							"broker sent request with incorrect body\n\texpected: %v\n\treceived: %v",
-							testCase.expected,
-							string(body))
-					}
-				}
-
-				return empty200Response, nil
-			})
+			broker, settingsRequestDone := setupBrokerConfigTest(
+				t, toyAppList, testCase.port, testCase.configFn(), testCase.expected)
 
 			_, cancel := context.WithCancel(t.Context())
 			go func() {
-				defer cancel()
-				brkr.Start()
+				broker.Start()
+				cancel()
 			}()
 
 			select {
-			case <-configRequestReceived:
-				result := <-configRequestCorrect
-				if !result {
-					t.Fatalf("broker sent incorrect config request body")
-				}
+			case <-settingsRequestDone:
 			case <-time.After(3 * time.Second):
 				t.Fatalf("timed out waiting for config request")
 			}
 
 			cancel()
-			shutdownBroker(t, brkr)
+			shutdownBroker(t, broker)
 		})
 	}
+}
+
+func setupBrokerConfigTest(
+	t *testing.T,
+	appList []utils.AltarHandler,
+	adminPort string,
+	configFn func(*awtrix.Config),
+	expectedConfigBody string,
+) (*broker.HTTPBroker, chan struct{}) {
+	t.Helper()
+
+	settingsRequestDone := make(chan struct{})
+
+	brkr, err := broker.NewBroker(
+		"127.0.0.1",
+		appList,
+		map[string]func(http.ResponseWriter, *http.Request){},
+		configFn,
+	)
+	if err != nil {
+		t.Fatalf("should not throw error creating broker: %v", err)
+	}
+
+	brkr.AdminPort = adminPort
+
+	var settingsRequestCount int32
+
+	brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
+		// We only care about the first settings request (initial config)
+		if request.URL.Path == "/api/settings" && atomic.AddInt32(&settingsRequestCount, 1) == 1 {
+			body, err := io.ReadAll(request.Body)
+			if err != nil {
+				t.Fatalf("failed reading body of broker request: %v", err)
+			}
+
+			actualConfig := string(body)
+			if actualConfig != expectedConfigBody {
+				t.Errorf("broker sent incorrect config:\nexpected: %v\nreceived: %v",
+					expectedConfigBody, actualConfig)
+			}
+
+			close(settingsRequestDone)
+		}
+
+		return empty200Response(), nil
+	})
+
+	return brkr, settingsRequestDone
 }
 
 func shutdownBroker(t *testing.T, brkr *broker.HTTPBroker) {
