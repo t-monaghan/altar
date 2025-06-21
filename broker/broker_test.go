@@ -148,13 +148,13 @@ func Test_BrokerSetsConfig(t *testing.T) {
 	}{
 		{
 			description: "broker disables default time app",
-			configFn:    application.DisableDefaultTimeApp,
+			configFn:    broker.DisableDefaultTimeApp,
 			expected:    "{\"TIM\":false}",
 			port:        "43324",
 		},
 		{
 			description: "broker disables all default apps",
-			configFn:    application.DisableAllDefaultApps,
+			configFn:    broker.DisableAllDefaultApps,
 			expected:    "{\"TIM\":false,\"WD\":false,\"DAT\":false,\"HUM\":false,\"TEMP\":false,\"BAT\":false}",
 			port:        "43325",
 		},

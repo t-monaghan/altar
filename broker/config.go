@@ -1,7 +1,8 @@
-package application
+package broker
 
 import (
 	"github.com/t-monaghan/altar/utils/awtrix"
+	"github.com/t-monaghan/altar/utils/awtrix/dev"
 )
 
 // DisableAllDefaultApps configures the broker to diable all default apps on startup.
@@ -66,5 +67,12 @@ func DisableDefaultBatteryApp() func(*awtrix.Config) {
 	return func(cfg *awtrix.Config) {
 		disable := false
 		cfg.BatteryAppEnabled = &disable
+	}
+}
+
+// ButtonCallBackAddress sets the callback address Awtrix will call when it's buttons are pressed.
+func ButtonCallBackAddress(address string) func(*dev.Config) {
+	return func(cfg *dev.Config) {
+		cfg.ButtonCallback = &address
 	}
 }

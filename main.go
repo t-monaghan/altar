@@ -10,24 +10,26 @@ import (
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
+	"github.com/t-monaghan/altar/examples/buttons"
 	"github.com/t-monaghan/altar/examples/github/checks"
 	"github.com/t-monaghan/altar/examples/github/contributions"
-	precipitation "github.com/t-monaghan/altar/examples/weather"
+	"github.com/t-monaghan/altar/examples/weather"
 	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
 )
 
 func main() {
 	githubChecks := notifier.NewNotifier("github checks", checks.Fetcher)
-	precipitation := application.NewApplication("rain forecast", precipitation.Fetcher)
+	weather := application.NewApplication("rain forecast", weather.Fetcher)
 	githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
 
 	listeners := map[string]func(http.ResponseWriter, *http.Request){
 		"/api/pipeline-watcher": checks.Handler,
 		"/api/contributions":    contributions.Handler,
+		"/api/buttons":          buttons.Handler,
 	}
 
-	appList := []utils.AltarHandler{&githubChecks, &precipitation, &githubContributions}
+	appList := []utils.AltarHandler{&githubChecks, &weather, &githubContributions}
 
 	requiredEnvVars := []string{"LATITUDE", "LONGITUDE"}
 	missingVars := []string{}
@@ -43,19 +45,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	broker, err := broker.NewBroker(
+	brkr, err := broker.NewBroker(
 		"127.0.0.1",
 		appList,
 		listeners,
-		application.DisableAllDefaultApps(),
+		broker.DisableAllDefaultApps(),
 	)
 
-	broker.Debug = true
+	brkr.Debug = true
 
 	if err != nil {
 		slog.Error("error instantiating new broker", "error", err)
 		os.Exit(1)
 	}
 
-	broker.Start()
+	brkr.Start()
 }
