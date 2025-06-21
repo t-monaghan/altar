@@ -48,10 +48,13 @@ func Test_InvalidBrokerInstantiation(t *testing.T) {
 	}
 }
 
-//nolint:gochecknoglobals
-var empty200Response = &http.Response{
-	StatusCode: http.StatusOK,
-	Body:       io.NopCloser(bytes.NewBufferString("")),
+func empty200Response() *http.Response {
+	empty200Response := http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewBufferString("")),
+	}
+
+	return &empty200Response
 }
 
 func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel,funlen
@@ -79,7 +82,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel,funlen
 
 		brkr.Client = utils.MockClient(func(request *http.Request) (*http.Response, error) {
 			if request.URL.Path == "/api/settings" || request.URL.Path == "/api/reboot" {
-				return empty200Response, nil
+				return empty200Response(), nil
 			}
 
 			body, err := io.ReadAll(request.Body)
@@ -99,7 +102,7 @@ func Test_BrokerHandlesRequests(t *testing.T) { //nolint:tparallel,funlen
 
 			pushRequestCorrect <- true
 
-			return empty200Response, nil
+			return empty200Response(), nil
 		})
 
 		_, cancel := context.WithCancel(t.Context())
@@ -183,7 +186,7 @@ func Test_BrokerSetsConfig(t *testing.T) {
 					}
 				}
 
-				return empty200Response, nil
+				return empty200Response(), nil
 			})
 
 			_, cancel := context.WithCancel(t.Context())
