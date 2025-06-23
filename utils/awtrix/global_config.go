@@ -1,7 +1,7 @@
 // Package awtrix provides utilities for awtrix related logic.
 package awtrix
 
-// Config defines the standard configuration of an Awtrix device.
+// Config defines the configuration options for an Awtrix device.
 type Config struct {
 	// https://blueforcer.github.io/awtrix3/#/api?id=json-properties-1
 	TimeAppEnabled     *bool   `json:"TIM,omitempty"`
@@ -13,7 +13,7 @@ type Config struct {
 	Overlay            Overlay `json:"OVERLAY,omitempty"`
 }
 
-// Overlay represents the enumarable options for Awtrix app and global overlays.
+// Overlay represents the set of available overlays for Awtrix devices.
 type Overlay string
 
 const (
