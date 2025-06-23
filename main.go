@@ -31,19 +31,7 @@ func main() {
 
 	appList := []utils.Routine{&githubChecks, &weather, &githubContributions}
 
-	requiredEnvVars := []string{"LATITUDE", "LONGITUDE"}
-	missingVars := []string{}
-
-	for _, val := range requiredEnvVars {
-		if os.Getenv(val) == "" {
-			missingVars = append(missingVars, val)
-		}
-	}
-
-	if len(missingVars) > 0 {
-		slog.Error("missing required environment variables", "missing-env-vars", missingVars)
-		os.Exit(1)
-	}
+	checkRequiredEnvironmentVariables()
 
 	brkr, err := broker.NewBroker(
 		"127.0.0.1",
@@ -60,4 +48,20 @@ func main() {
 	}
 
 	brkr.Start()
+}
+
+func checkRequiredEnvironmentVariables() {
+	requiredEnvVars := []string{"LATITUDE", "LONGITUDE"}
+	missingVars := []string{}
+
+	for _, val := range requiredEnvVars {
+		if os.Getenv(val) == "" {
+			missingVars = append(missingVars, val)
+		}
+	}
+
+	if len(missingVars) > 0 {
+		slog.Error("missing required environment variables", "missing-env-vars", missingVars)
+		os.Exit(1)
+	}
 }
