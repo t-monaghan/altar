@@ -7,7 +7,7 @@
 
 ## Summary
 
-Altar is a library for golang that allows developers to create custom Applications for the [Awtrix](https://blueforcer.github.io/awtrix3/#/) platform. Its aim is to provide a simple and intuitive manner to stand up a broker with a collection of applications to control the display of Awtrix supported devices.
+Altar is a library for golang that allows developers to create custom Applications for [Awtrix](https://blueforcer.github.io/awtrix3/#/) devices. Its aim is to provide a simple and intuitive manner to stand up a broker with a collection of applications to display on Awtrix supported devices.
 
 ### See it in action
 
