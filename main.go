@@ -1,4 +1,4 @@
-// An example of Altar's intended usage
+// An example of altar's intended usage
 //
 // To have this run in debug mode with a request logger run `devbox services up`
 package main

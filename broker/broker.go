@@ -48,7 +48,7 @@ const (
 	AdminShutdownCommand AltarAdminCommand = "DOWN"
 )
 
-// HTTPBroker is a broker that queries each of the Altar applications and communicates updates to the Awtrix host.
+// HTTPBroker is a broker that queries each of the altar applications and communicates updates to the Awtrix host.
 type HTTPBroker struct {
 	handlers      []utils.AltarHandler
 	clockAddress  string
@@ -59,13 +59,13 @@ type HTTPBroker struct {
 	listeners     map[string]func(http.ResponseWriter, *http.Request)
 }
 
-// ErrBrokerHasNoApplications occurs when an Altar Broker is instantiated with no applications.
+// ErrBrokerHasNoApplications occurs when an altar Broker is instantiated with no applications.
 var ErrBrokerHasNoApplications = errors.New("failed to initialise broker: no applications were provided")
 
-// ErrIPNotValid occurs when an Altar Broker is instantiated with an invalid IP address.
+// ErrIPNotValid occurs when an altar Broker is instantiated with an invalid IP address.
 var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not valid")
 
-// NewBroker instantiates a new Altar broker.
+// NewBroker instantiates a new altar broker.
 func NewBroker(
 	addr string,
 	applications []utils.AltarHandler,
