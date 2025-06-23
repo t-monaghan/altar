@@ -10,7 +10,7 @@ import (
 	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
-// Notifier is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
+// Notifier is altar's approach of managing the data retrieval and storage required of a custom Awtrix notifier.
 type Notifier struct {
 	Name           string
 	fetcher        func(*Notifier, *http.Client) error
@@ -22,7 +22,7 @@ type Notifier struct {
 	lastPolled     time.Time
 }
 
-// NewNotifier instantiates a new altar notification handler.
+// NewNotifier instantiates a new altar notification routine.
 func NewNotifier(name string, fetcher func(*Notifier, *http.Client) error) Notifier {
 	return Notifier{
 		Name:           name,
@@ -51,7 +51,7 @@ func (n *Notifier) Fetch(client *http.Client) error {
 	return n.fetcher(n, client)
 }
 
-// NotificationData is Altar's presentation of a custom Awtrix notification.
+// NotificationData is altar's presentation of a custom Awtrix notification.
 type NotificationData struct {
 	Text        string         `json:"text,omitempty"`
 	TextCase    *int           `json:"textCase,omitempty"`

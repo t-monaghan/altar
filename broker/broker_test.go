@@ -24,12 +24,12 @@ func Test_InvalidBrokerInstantiation(t *testing.T) {
 		func(_ *application.Application, _ *http.Client) error {
 			return nil
 		})
-	toyAppList := []utils.AltarHandler{&toyApp}
+	toyAppList := []utils.Routine{&toyApp}
 
 	cases := []struct {
 		description  string
 		IPAddress    string
-		Applications []utils.AltarHandler
+		Applications []utils.Routine
 		expected     error
 	}{
 		{"broker with no applications", "127.0.0.1", nil, broker.ErrBrokerHasNoApplications},
@@ -60,7 +60,7 @@ func empty200Response() *http.Response {
 func Test_BrokerHandlesRequests(t *testing.T) {
 	t.Parallel()
 
-	appMsg, appName, toyAppList := setupBrokerHandlesRequest(t)
+	toyAppList := setupToyApp(t)
 
 	t.Run("broker executes handler requests", func(t *testing.T) {
 		t.Parallel()
@@ -84,14 +84,14 @@ func Test_BrokerHandlesRequests(t *testing.T) {
 				t.Fatalf("failed reading body of broker request\n\terror: %v", err)
 			}
 
-			expected, _ := json.Marshal(application.AppData{Text: appMsg})
+			expected, _ := json.Marshal(application.AppData{Text: toyAppMsg})
 			if string(body) != string(expected) {
 				t.Fatalf("broker sent request with incorrect body\n\texpected: %v\n\treceived: %v", string(expected), string(body))
 			}
 
 			queries := request.URL.Query()
-			if queries.Get("name") != appName {
-				t.Fatalf("incorrect query paramater for app name\n\texpected: %v\n\treceived: %v", appName, queries["name"])
+			if queries.Get("name") != toyAppName {
+				t.Fatalf("incorrect query paramater for app name\n\texpected: %v\n\treceived: %v", toyAppName, queries["name"])
 			}
 
 			pushRequestCorrect <- true
@@ -119,26 +119,27 @@ func Test_BrokerHandlesRequests(t *testing.T) {
 	})
 }
 
-func setupBrokerHandlesRequest(t *testing.T) (string, string, []utils.AltarHandler) {
+const toyAppMsg = "Hello, World!"
+const toyAppName = "test app"
+
+func setupToyApp(t *testing.T) []utils.Routine {
 	t.Helper()
 
-	appMsg := "Hello, World!"
-	appName := "test app"
-	toyApp := application.NewApplication(appName,
+	toyApp := application.NewApplication(toyAppName,
 		func(a *application.Application, _ *http.Client) error {
-			a.Data.Text = appMsg
+			a.Data.Text = toyAppMsg
 
 			return nil
 		})
-	toyAppList := []utils.AltarHandler{&toyApp}
+	toyAppList := []utils.Routine{&toyApp}
 
-	return appMsg, appName, toyAppList
+	return toyAppList
 }
 
 func Test_BrokerSetsConfig(t *testing.T) {
 	t.Parallel()
 
-	_, _, toyAppList := setupBrokerHandlesRequest(t)
+	toyAppList := setupToyApp(t)
 
 	cases := []struct {
 		description string
@@ -187,7 +188,7 @@ func Test_BrokerSetsConfig(t *testing.T) {
 
 func setupBrokerConfigTest(
 	t *testing.T,
-	appList []utils.AltarHandler,
+	appList []utils.Routine,
 	adminPort string,
 	configFn func(*awtrix.Config),
 	expectedConfigBody string,

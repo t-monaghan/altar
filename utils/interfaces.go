@@ -7,8 +7,8 @@ import (
 	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
-// AltarHandler defines what is required for a broker to manage a handler.
-type AltarHandler interface {
+// Routine defines the requirements for an object to be managed by an altar broker.
+type Routine interface {
 	Fetch(client *http.Client) error
 	GetData() any
 	ShouldPushToAwtrix() bool

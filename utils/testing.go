@@ -1,4 +1,4 @@
-// Package utils is a package for general utilities for developing Altar
+// Package utils is a package for general utilities for developing altar
 package utils
 
 import "net/http"

@@ -14,7 +14,7 @@ import (
 	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
-// AppData is Altar's presentation of a custom Awtrix application.
+// AppData contains the fields available to an Awtrix application.
 type AppData struct {
 	// Text can either be a string, or []TextWithColour
 	Text         any                 `json:"text,omitempty"`
@@ -49,21 +49,21 @@ type AppData struct {
 	Draw         *[]DrawInstructions `json:"draw,omitempty"`
 }
 
-// DrawInstructions is the container for the different image instructions possible in awtrix.
+// DrawInstructions represents the drawing instructions possible in awtrix.
 type DrawInstructions struct {
 	Bitmap *ImageAndPosition `json:"db,omitempty"`
 }
 
-// ImageAndPosition defines how to draw an image based on pixel colours in their raw numeric value.
+// ImageAndPosition defines the instructions for the colours of pixels in a rectangle.
 type ImageAndPosition struct {
 	XPos   int
 	Ypos   int
 	Width  int
 	Height int
-	Image  []int
+	Image  []int // raw rgb values, e.g. hex -> raw #000000 = 0 and #00001F = 31
 }
 
-// MarshalJSON is used here as ImageAndPosition has a curious format defined by awtrix.
+// MarshalJSON is required as the draw instruction for awtrix is an array rather than an object.
 func (f *ImageAndPosition) MarshalJSON() ([]byte, error) {
 	data, err := json.Marshal([]any{
 		f.XPos,
@@ -82,11 +82,12 @@ func (f *ImageAndPosition) MarshalJSON() ([]byte, error) {
 // TextWithColour represents a portion of text and the colour it should be drawn as.
 type TextWithColour struct {
 	Text string `json:"t,omitempty"`
-	// A colour defined in RGB hex value e.g. #FF0000 for pure red
+	// A colour represented in RGB hex value e.g. "FF0000" for pure red
 	Colour string `json:"c,omitempty"`
 }
 
-// Application is Altar's approach of managing the data retrieval and storage required of a custom Awtrix application.
+// Application is altar's representation of a custom app, containing the logic and data required to manage retrieving
+// it's data and making requests to the Awtrix device.
 type Application struct {
 	Name           string
 	fetcher        func(*Application, *http.Client) error
@@ -98,7 +99,7 @@ type Application struct {
 	HTTPClient     *http.Client
 }
 
-// NewApplication Instantiates a new altar application.
+// NewApplication instantiates a new altar application.
 func NewApplication(name string, fetcher func(*Application, *http.Client) error) Application {
 	return Application{
 		Name:           name,
@@ -110,8 +111,7 @@ func NewApplication(name string, fetcher func(*Application, *http.Client) error)
 	}
 }
 
-// SetPollRateByRateLimit is a helper function that sets the application's poll rate
-// when given the count of requests per duration.
+// SetPollRateByRateLimit allows setting the poll rate based on an application fetcher's rate limit.
 func (a *Application) SetPollRateByRateLimit(requests uint32, duration time.Duration) {
 	a.PollRate = duration / time.Duration(requests)
 }
@@ -121,17 +121,17 @@ func (a *Application) ShouldFetch() bool {
 	return time.Since(a.lastPolled) > a.PollRate
 }
 
-// ShouldPushToAwtrix defines whether an application should push it's data to Awtrix.
+// ShouldPushToAwtrix defines whether an application should push it's data to Awtrix on the next poll.
 func (a *Application) ShouldPushToAwtrix() bool {
 	return a.PushOnNextCall
 }
 
-// GetName returns the name of the app.
+// GetName returns the name of the application.
 func (a *Application) GetName() string {
 	return a.Name
 }
 
-// GetPollRate returns the app's poll rate.
+// GetPollRate returns the application's poll rate.
 func (a *Application) GetPollRate() time.Duration {
 	return a.PollRate
 }
@@ -159,7 +159,7 @@ func (a *Application) GetData() any {
 	return a.Data
 }
 
-// GetGlobalConfig returns the global awtrix config this application has set.
+// GetGlobalConfig returns the Awtrix configuration this application has requested to change.
 func (a *Application) GetGlobalConfig() awtrix.Config {
 	return a.GlobalConfig
 }
