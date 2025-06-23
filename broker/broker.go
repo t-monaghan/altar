@@ -25,13 +25,11 @@ import (
 	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
-// MinLoopTime is the minimum time the broker will spend between iterations of fetching and pushing updates.
-const MinLoopTime = 5 * time.Second
 const httpTimeout = 10 * time.Second
 const idleTimeout = 120 * time.Second
 const defaultWebPort = ":8080"
 
-// DefaultAdminPort is the port the broker listens on for commands.
+// DefaultAdminPort is the default port for the broker's api.
 const DefaultAdminPort = "25827"
 
 // AltarAdminRequest defines the expected request type for the altar admin server.
@@ -48,35 +46,36 @@ const (
 	AdminShutdownCommand AltarAdminCommand = "DOWN"
 )
 
-// HTTPBroker is a broker that queries each of the altar applications and communicates updates to the Awtrix host.
+// HTTPBroker performs each routine's fetching, hosts handler functions on it's server and communicates updates to
+// the Awtrix host.
 type HTTPBroker struct {
-	handlers      []utils.AltarHandler
+	routines      []utils.Routine
 	clockAddress  string
 	Client        *http.Client
-	Debug         bool
+	DebugMode     bool
 	DisplayConfig awtrix.Config
 	AdminPort     string
-	listeners     map[string]func(http.ResponseWriter, *http.Request)
+	handlers      map[string]func(http.ResponseWriter, *http.Request)
 }
 
 // ErrBrokerHasNoApplications occurs when an altar Broker is instantiated with no applications.
 var ErrBrokerHasNoApplications = errors.New("failed to initialise broker: no applications were provided")
 
-// ErrIPNotValid occurs when an altar Broker is instantiated with an invalid IP address.
-var ErrIPNotValid = errors.New("failed to initialise broker: IP address is not valid")
+// ErrIPNotValid occurs when an invalid IP address is provided.
+var ErrIPNotValid = errors.New("IP address is not valid")
 
 // NewBroker instantiates a new altar broker.
 func NewBroker(
-	addr string,
-	applications []utils.AltarHandler,
-	listeners map[string]func(http.ResponseWriter, *http.Request),
+	awtrixAddress string,
+	routines []utils.Routine,
+	handlers map[string]func(http.ResponseWriter, *http.Request),
 	options ...func(*awtrix.Config),
 ) (*HTTPBroker, error) {
-	if len(applications) == 0 {
+	if len(routines) == 0 {
 		return nil, ErrBrokerHasNoApplications
 	}
 
-	clockIP := net.ParseIP(addr)
+	clockIP := net.ParseIP(awtrixAddress)
 	if clockIP == nil {
 		return nil, ErrIPNotValid
 	}
@@ -88,20 +87,19 @@ func NewBroker(
 
 	brkr := HTTPBroker{
 		clockAddress:  fmt.Sprintf("http://%v", clockIP),
-		handlers:      applications,
+		routines:      routines,
 		Client:        &http.Client{Timeout: httpTimeout},
-		Debug:         false,
+		DebugMode:     false,
 		DisplayConfig: cfg,
-		listeners:     listeners,
+		handlers:      handlers,
 	}
 
 	return &brkr, nil
 }
 
-// Start executes the broker's routine.
-// it accepts a mapping of paths and request handlers for extending the broker's API.
+// Start begins execution of the broker's routine.
 func (b *HTTPBroker) Start() {
-	if b.Debug {
+	if b.DebugMode {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
@@ -125,7 +123,7 @@ func (b *HTTPBroker) Start() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/admin/command", commandHandler)
 
-	for path, handler := range b.listeners {
+	for path, handler := range b.handlers {
 		mux.HandleFunc(path, handler)
 	}
 
@@ -154,12 +152,12 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 
 		var fetchGroup sync.WaitGroup
 
-		var mutateConfig sync.Mutex
+		var mutateConfigAndSetPollRate sync.Mutex
 
-		for _, app := range brkr.handlers {
+		for _, app := range brkr.routines {
 			fetchGroup.Add(1)
 
-			go func(app utils.AltarHandler) {
+			go func(app utils.Routine) {
 				defer fetchGroup.Done()
 
 				defer func() {
@@ -173,12 +171,13 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 					slog.Error("error encountered in fetching", "app", app.GetName(), "error", err)
 				}
 
-				mutateConfig.Lock()
+				mutateConfigAndSetPollRate.Lock()
+				brkr.DisplayConfig = mergeConfig(brkr.DisplayConfig, app.GetGlobalConfig())
+
 				if app.GetPollRate() < quickestPoll {
-					brkr.DisplayConfig = mergeConfig(brkr.DisplayConfig, app.GetGlobalConfig())
 					quickestPoll = app.GetPollRate()
 				}
-				mutateConfig.Unlock()
+				mutateConfigAndSetPollRate.Unlock()
 			}(app)
 		}
 
@@ -189,7 +188,7 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 			slog.Error("error changing awtrix settings", "error", err)
 		}
 
-		for _, app := range brkr.handlers {
+		for _, app := range brkr.routines {
 			err := brkr.push(app)
 			if err != nil {
 				slog.Error("error encountered pushing to awtrix device", "app", app.GetName(), "error", err)
@@ -212,7 +211,7 @@ func (b *HTTPBroker) sendConfig() error {
 	bufferedJSON := bytes.NewBuffer(jsonData)
 
 	debugPort := ""
-	if b.Debug {
+	if b.DebugMode {
 		debugPort = defaultWebPort
 	}
 
@@ -244,73 +243,73 @@ func (b *HTTPBroker) sendConfig() error {
 	return err
 }
 
-// ErrUnknownHandlerType is thrown when altar encounters a concrete handler type that it does not recognise.
+// ErrUnknownRoutineType is thrown when altar encounters a concrete routine type that it does not recognise.
 // Strictly only the types defined by altar are used as the broker's push method needs to know how to handle the
 // request.
-var ErrUnknownHandlerType = errors.New("unknown handler type")
+var ErrUnknownRoutineType = errors.New("unknown routine type")
 
-func (b *HTTPBroker) push(handler utils.AltarHandler) error {
-	if !handler.ShouldPushToAwtrix() {
-		slog.Debug("skipping push for handler", "handler", handler.GetName())
+func (b *HTTPBroker) push(routine utils.Routine) error {
+	if !routine.ShouldPushToAwtrix() {
+		slog.Debug("skipping push for routine", "routine", routine.GetName())
 
 		return nil
 	}
 
-	jsonData, err := json.Marshal(handler.GetData())
+	jsonData, err := json.Marshal(routine.GetData())
 	if err != nil {
-		return fmt.Errorf("failed to marshal %v data into json: %w", handler.GetName(), err)
+		return fmt.Errorf("failed to marshal %v data into json: %w", routine.GetName(), err)
 	}
 
 	bufferedJSON := bytes.NewBuffer(jsonData)
 
 	debugPort := ""
-	if b.Debug {
+	if b.DebugMode {
 		debugPort = defaultWebPort
 	}
 
 	var address string
-	switch handler.(type) {
+	switch routine.(type) {
 	case *application.Application:
-		address = fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, debugPort, url.QueryEscape(handler.GetName()))
+		address = fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, debugPort, url.QueryEscape(routine.GetName()))
 	case *notifier.Notifier:
 		address = fmt.Sprintf("%v%v/api/notify", b.clockAddress, debugPort)
 	default:
-		return fmt.Errorf("%w for handler: %v", ErrUnknownHandlerType, handler.GetName())
+		return fmt.Errorf("%w for routine: %v", ErrUnknownRoutineType, routine.GetName())
 	}
 
-	err = b.postRequestToAwtrix(address, bufferedJSON, handler.GetName())
+	err = b.postRequestToAwtrix(address, bufferedJSON, routine.GetName())
 	if err != nil {
 		return err
 	}
 
-	slog.Debug("pushed", "handler-name", handler.GetName())
+	slog.Debug("pushed", "routine-name", routine.GetName())
 
 	return err
 }
 
-func (b *HTTPBroker) postRequestToAwtrix(address string, bufferedJSON *bytes.Buffer, handlerName string) error {
+func (b *HTTPBroker) postRequestToAwtrix(address string, bufferedJSON *bytes.Buffer, routineName string) error {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
 	if err != nil {
-		return fmt.Errorf("failed to create post request for %v: %w", handlerName, err)
+		return fmt.Errorf("failed to create post request for %v: %w", routineName, err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := b.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform post request for %v: %w", handlerName, err)
+		return fmt.Errorf("failed to perform post request for %v: %w", routineName, err)
 	}
 
 	defer func() {
 		closeErr := resp.Body.Close()
 		if err == nil && closeErr != nil {
-			err = fmt.Errorf("%w for handler %v: %w", utils.ErrClosingResponseBody, handlerName, closeErr)
+			err = fmt.Errorf("%w for routine %v: %w", utils.ErrClosingResponseBody, routineName, closeErr)
 		}
 	}()
 
 	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
 		slog.Error("awtrix has responded to push with non-2xx http response",
-			"http-status", resp.Status, "handler", handlerName)
+			"http-status", resp.Status, "routine", routineName)
 	}
 
 	return err
@@ -360,7 +359,7 @@ func commandHandler(wrtr http.ResponseWriter, req *http.Request) {
 
 func (b *HTTPBroker) rebootAwtrix() error {
 	debugPort := ""
-	if b.Debug {
+	if b.DebugMode {
 		debugPort = defaultWebPort
 	}
 

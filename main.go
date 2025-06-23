@@ -23,13 +23,13 @@ func main() {
 	weather := application.NewApplication("rain forecast", weather.Fetcher)
 	githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
 
-	listeners := map[string]func(http.ResponseWriter, *http.Request){
+	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"/api/pipeline-watcher": checks.Handler,
 		"/api/contributions":    contributions.Handler,
 		"/api/buttons":          buttons.Handler,
 	}
 
-	appList := []utils.AltarHandler{&githubChecks, &weather, &githubContributions}
+	appList := []utils.Routine{&githubChecks, &weather, &githubContributions}
 
 	requiredEnvVars := []string{"LATITUDE", "LONGITUDE"}
 	missingVars := []string{}
@@ -48,11 +48,11 @@ func main() {
 	brkr, err := broker.NewBroker(
 		"127.0.0.1",
 		appList,
-		listeners,
+		handlers,
 		broker.DisableAllDefaultApps(),
 	)
 
-	brkr.Debug = true
+	brkr.DebugMode = true
 
 	if err != nil {
 		slog.Error("error instantiating new broker", "error", err)
