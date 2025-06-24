@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.0.0-pre](https://github.com/t-monaghan/altar/compare/v0.2.1...v1.0.0-pre) (2025-06-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* fixes awtrix config not being applied ([#40](https://github.com/t-monaghan/altar/issues/40))
+* adds button callback example, moves awtrix config into broker package ([#38](https://github.com/t-monaghan/altar/issues/38))
+
+### Features
+
+* adds button callback example, moves awtrix config into broker package ([#38](https://github.com/t-monaghan/altar/issues/38)) ([66c3497](https://github.com/t-monaghan/altar/commit/66c34974f1ba6f927a7e4dd801a32babe8542164))
+
+
+### Bug Fixes
+
+* fixes awtrix config not being applied ([#40](https://github.com/t-monaghan/altar/issues/40)) ([da3995e](https://github.com/t-monaghan/altar/commit/da3995eac0ca89906bfab89dc31b97f2169e26fe))
+
+
+### Miscellaneous Chores
+
+* release 1.0.0-pre ([#41](https://github.com/t-monaghan/altar/issues/41)) ([98cc803](https://github.com/t-monaghan/altar/commit/98cc8037cf0c1da554e2f4ec3cebf42770a8dd91))
+
 ## [0.2.1](https://github.com/t-monaghan/altar/compare/v0.2.0...v0.2.1) (2025-06-21)
 
 
