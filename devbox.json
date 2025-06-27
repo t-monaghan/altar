@@ -9,7 +9,8 @@
       "lint": "golangci-lint run",
       "lint:fix": "golangci-lint run --fix",
       "format": "golangci-lint fmt",
-      "ci": ["go build .", "devbox run lint", "devbox run test"]
+      "ci": ["go build .", "devbox run lint", "devbox run test"],
+      "shutdown": "./scripts/shutdown.sh"
     }
   },
   "env_from": ".env"

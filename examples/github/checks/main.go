@@ -30,36 +30,59 @@ func initChannel() {
 
 // Fetcher receives data from the handler and prepares it to be posted by altar's broker.
 func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
+	falseVal := false
+	trueVal := true
+
 	if !channelInitialized {
 		initChannel()
 	}
 
+	progressOutOfAHundred := 0
+
 	var info Progress
+
 	select {
 	case info = <-checksChannel:
 		slog.Debug("githubchecks fetcher received message", "msg", info)
-	default: // No data available in channel
+	default:
 		ntfr.PushOnNextCall = false
 
 		return nil
 	}
 
+	progressOutOfAHundred = int(float64(info.CompletedActions) / float64(info.TotalActions) * 100) //nolint:mnd
+
+	if ntfr.Data.Progress != nil && progressOutOfAHundred == *ntfr.Data.Progress {
+		return nil
+	}
+
+	ntfr.Data.Progress = &progressOutOfAHundred
 	ntfr.PushOnNextCall = true
-	progress := info.CompletedActions / info.TotalActions
-	ntfr.Data.Progress = &progress
+	ntfr.Data.Stack = &falseVal
+
 	ntfr.Data.ProgressC = []int{74, 194, 108}
 	ntfr.Data.ProgressBC = []int{17, 99, 42}
+	eight := 8
+	ntfr.Data.Duration = &eight
 
 	if len(info.FailedActions) > 0 {
-		fiveHundred := 500
-		trueVal := true
+		fiveHundred := 800
 		ntfr.Data.BlinkText = &fiveHundred
+		ntfr.Data.Color = []int{255, 0, 0}
 		ntfr.Data.Hold = &trueVal
 		ntfr.Data.Text = fmt.Sprintf("%v failed", info.FailedActions[0])
 
 		if len(info.FailedActions) > 1 {
 			ntfr.Data.Text = fmt.Sprintf("%v failing", len(info.FailedActions))
 		}
+
+		return nil
+	}
+
+	if progressOutOfAHundred == 100 { //nolint:mnd
+		ntfr.Data.Hold = &trueVal
+		ntfr.Data.Text = "passing"
+		ntfr.Data.Color = []int{0, 190, 0}
 
 		return nil
 	}

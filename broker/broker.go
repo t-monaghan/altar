@@ -27,7 +27,7 @@ import (
 
 const httpTimeout = 10 * time.Second
 const idleTimeout = 120 * time.Second
-const defaultWebPort = ":8080"
+const mockAwtrixPort = ":8080"
 
 // DefaultAdminPort is the default port for the broker's api.
 const DefaultAdminPort = "25827"
@@ -53,6 +53,7 @@ type HTTPBroker struct {
 	clockAddress  string
 	Client        *http.Client
 	DebugMode     bool
+	MockAwtrix    bool
 	DisplayConfig awtrix.Config
 	AdminPort     string
 	handlers      map[string]func(http.ResponseWriter, *http.Request)
@@ -101,19 +102,20 @@ func NewBroker(
 func (b *HTTPBroker) Start() {
 	if b.DebugMode {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
-	}
+	} else {
+		// avoid rebooting when debugging
+		err := b.sendConfig()
+		if err != nil {
+			slog.Error("error setting up initial awtrix configuration", "error", err)
+		}
 
-	err := b.sendConfig()
-	if err != nil {
-		slog.Error("error setting up initial awtrix configuration", "error", err)
-	}
+		slog.Info("rebooting awtrix device")
 
-	slog.Info("rebooting awtrix device")
-
-	// rebooting awtrix is required to ensure the configuration is applied
-	err = b.rebootAwtrix()
-	if err != nil {
-		slog.Error("error rebooting the awtrix device", "error", err)
+		// rebooting awtrix is required to ensure the configuration is applied
+		err = b.rebootAwtrix()
+		if err != nil {
+			slog.Error("error rebooting the awtrix device", "error", err)
+		}
 	}
 
 	go func() {
@@ -210,12 +212,12 @@ func (b *HTTPBroker) sendConfig() error {
 
 	bufferedJSON := bytes.NewBuffer(jsonData)
 
-	debugPort := ""
-	if b.DebugMode {
-		debugPort = defaultWebPort
+	port := ""
+	if b.MockAwtrix {
+		port = mockAwtrixPort
 	}
 
-	address := fmt.Sprintf("%v%v/api/settings", b.clockAddress, debugPort)
+	address := fmt.Sprintf("%v%v/api/settings", b.clockAddress, port)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
 	if err != nil {
@@ -262,17 +264,17 @@ func (b *HTTPBroker) push(routine utils.Routine) error {
 
 	bufferedJSON := bytes.NewBuffer(jsonData)
 
-	debugPort := ""
-	if b.DebugMode {
-		debugPort = defaultWebPort
+	port := ""
+	if b.MockAwtrix {
+		port = mockAwtrixPort
 	}
 
 	var address string
 	switch routine.(type) {
 	case *application.Application:
-		address = fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, debugPort, url.QueryEscape(routine.GetName()))
+		address = fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, port, url.QueryEscape(routine.GetName()))
 	case *notifier.Notifier:
-		address = fmt.Sprintf("%v%v/api/notify", b.clockAddress, debugPort)
+		address = fmt.Sprintf("%v%v/api/notify", b.clockAddress, port)
 	default:
 		return fmt.Errorf("%w for routine: %v", ErrUnknownRoutineType, routine.GetName())
 	}
@@ -358,12 +360,12 @@ func commandHandler(wrtr http.ResponseWriter, req *http.Request) {
 }
 
 func (b *HTTPBroker) rebootAwtrix() error {
-	debugPort := ""
-	if b.DebugMode {
-		debugPort = defaultWebPort
+	port := ""
+	if b.MockAwtrix {
+		port = mockAwtrixPort
 	}
 
-	address := fmt.Sprintf("%v%v/api/reboot", b.clockAddress, debugPort)
+	address := fmt.Sprintf("%v%v/api/reboot", b.clockAddress, port)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, nil)
 	if err != nil {
