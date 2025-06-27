@@ -84,15 +84,17 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 	return nil
 }
 
-const lightGreyRawValue = 251604817    // #EFF2F51
-const lightestGreenRawValue = 11333307 // #ACEEBB
-const midGreenRawValue = 4899435       // #4AC26B
-const highestGreenValue = 1139497      // #116329
-const goldValue = 16508676             // #FBE704
-const redValue = 16711680              // #FF0000
+const black = 0x000000
+const darkestGreen = 0x1d2f21
+const darkGreen = 0x254727
+const green = 0x307732
+const brightGreen = 0x3aa63c
+const dimWhite = 0x888888
+const red = 0xFF0000
 
 func contributionGraphsDrawInstruction(allContributions []int) application.ImageAndPosition {
-	displayableContributions := allContributions[daysWillFitOnDisplay():]
+	indexBackTo := len(allContributions) - daysWillFitOnDisplay()
+	displayableContributions := allContributions[indexBackTo:]
 	busiestDay := slices.Max(displayableContributions)
 	transformed := transformRightThenDownToDownThenRight(displayableContributions)
 
@@ -103,18 +105,19 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 
 		switch {
 		case contributionValue == 0:
-			colour = lightGreyRawValue
-		case contributionValue < (busiestDay / binCount):
-			colour = lightestGreenRawValue
-		case contributionValue < (busiestDay/binCount)*2:
-			colour = midGreenRawValue
+			colour = black
+		case contributionValue <= busiestDay/8:
+			colour = darkestGreen
+		case contributionValue <= busiestDay/3:
+			colour = darkGreen
+		case contributionValue <= busiestDay/3*2:
+			colour = green
 		case contributionValue < busiestDay:
-			colour = highestGreenValue
+			colour = brightGreen
 		case contributionValue == busiestDay:
-			colour = goldValue
+			colour = dimWhite
 		default:
-			colour = redValue
-
+			colour = red
 			slog.Error("github contribution count did not bin correctly", "value", contributionValue, "max", busiestDay)
 		}
 
@@ -153,8 +156,6 @@ func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
 
 	return application.ImageAndPosition{XPos: 0, Ypos: heightOfDisplay, Width: widthOfDisplay, Height: 1, Image: drawing}
 }
-
-const binCount = 5
 
 const widthOfDisplay = 32
 
