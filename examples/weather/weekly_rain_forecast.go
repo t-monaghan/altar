@@ -53,10 +53,6 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 		return HourlyForecast{}, false, fmt.Errorf("error reading forecast response: %w", err)
 	}
 
-	if len(forecast.Hourly.PrecipitationProbability) == 0 {
-		return HourlyForecast{}, false, ErrEmptyResponse
-	}
-
 	hourly := forecast.getHourlyForecast()
 
 	slices.SortFunc(hourly, func(a, b HourlyForecast) int {
@@ -94,6 +90,10 @@ func readForecastResponse(response *http.Response) (*forecastResponse, error) {
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response of rain forecast: %w", err)
+	}
+
+	if response.StatusCode < 200 || response.StatusCode > 299 {
+		return nil, fmt.Errorf("openmeteo responded to request with non-2xx status: %v", string(body))
 	}
 
 	forecast := &forecastResponse{}
