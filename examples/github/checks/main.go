@@ -82,6 +82,8 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 		ntfr.Data.Hold = &trueVal
 		ntfr.Data.Text = "jobs done"
 		ntfr.Data.Color = []int{0, 190, 0}
+
+		return nil
 	}
 
 	ntfr.Data.Text = fmt.Sprintf("%v/%v jobs", info.CompletedActions, info.TotalActions)
