@@ -52,9 +52,10 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 	ntfr.Data.ProgressBC = []int{17, 99, 42}
 
 	if len(info.FailedActions) > 0 {
-		fiveHundred := 500
+		fiveHundred := 800
 		trueVal := true
 		ntfr.Data.BlinkText = &fiveHundred
+		ntfr.Data.Color = []int{255, 0, 0}
 		ntfr.Data.Hold = &trueVal
 		ntfr.Data.Text = fmt.Sprintf("%v failed", info.FailedActions[0])
 
