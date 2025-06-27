@@ -44,15 +44,15 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 		return nil
 	}
 
-	progress := int(float64(info.CompletedActions) / float64(info.TotalActions) * 100)
+	progressOutOfAHundred := int(float64(info.CompletedActions) / float64(info.TotalActions) * 100) //nolint:mnd
 
-	if ntfr.Data.Progress != nil && progress == *ntfr.Data.Progress {
+	if ntfr.Data.Progress != nil && progressOutOfAHundred == *ntfr.Data.Progress {
 		ntfr.PushOnNextCall = false
 
 		return nil
 	}
 
-	ntfr.Data.Progress = &progress
+	ntfr.Data.Progress = &progressOutOfAHundred
 	ntfr.PushOnNextCall = true
 
 	ntfr.Data.ProgressC = []int{74, 194, 108}
