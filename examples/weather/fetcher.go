@@ -21,6 +21,9 @@ func Fetcher(app *application.Application, client *http.Client) error {
 		return fmt.Errorf("error querying current precipitation: %w", err)
 	}
 
+	thirty := 30
+	app.Data.ScrollSpeed = &thirty
+
 	if precip > 0 {
 		app.Data.Text = fmt.Sprintf("Raining: %.0fmm", precip)
 		app.Data.Overlay = awtrix.Rain
