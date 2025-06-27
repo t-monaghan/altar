@@ -85,10 +85,10 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 }
 
 const black = 0x000000
-const darkestGreen = 0x1d2f21
+const darkestGreen = 0x1D2F21
 const darkGreen = 0x254727
 const green = 0x307732
-const brightGreen = 0x3aa63c
+const brightGreen = 0x3AA63C
 const dimWhite = 0x888888
 const red = 0xFF0000
 
@@ -133,7 +133,7 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 	}
 }
 
-const blueRawVal = 2790338 // #2A93C2
+const blue = 0x2A93C2
 const hoursInADay = 24
 
 func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
@@ -148,7 +148,7 @@ func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
 
 		weeksSinceStartOfMonth := daysSince / daysInAWeek
 		if weeksSinceStartOfMonth < widthOfDisplay {
-			drawing[weeksSinceStartOfMonth] = blueRawVal
+			drawing[weeksSinceStartOfMonth] = blue
 		}
 	}
 	// contribution grid is in reverse chronological order, we reverse the drawing to match this.
