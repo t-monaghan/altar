@@ -53,9 +53,22 @@ func Fetcher(app *application.Application, client *http.Client) error {
 		Colour: blueHex,
 		Text:   rainChanceString})
 
-	timeUntilRain := time.Until(nextRain.Time)
+	readableTime := nextRainInWords(nextRain)
 
+	colouredText = append(colouredText, application.TextWithColour{
+		Colour: whiteHex,
+		Text:   readableTime,
+	})
+
+	app.Data.Text = colouredText
+
+	return nil
+}
+
+func nextRainInWords(nextRain HourlyForecast) string {
 	var readableTime string
+
+	timeUntilRain := time.Until(nextRain.Time)
 
 	switch {
 	case timeUntilRain < time.Minute:
@@ -70,12 +83,5 @@ func Fetcher(app *application.Application, client *http.Client) error {
 		readableTime = nextRain.Time.Format("3PM Mon")
 	}
 
-	colouredText = append(colouredText, application.TextWithColour{
-		Colour: whiteHex,
-		Text:   readableTime,
-	})
-
-	app.Data.Text = colouredText
-
-	return nil
+	return readableTime
 }

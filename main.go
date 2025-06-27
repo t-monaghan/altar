@@ -46,11 +46,12 @@ func main() {
 		slog.Error("error instantiating new broker", "error", err)
 		os.Exit(1)
 	}
+
 	brkr.Start()
 }
 
 func checkRequiredEnvironmentVariables() {
-	requiredEnvVars := []string{"LATITUDE", "LONGITUDE", "TIMEZONE"}
+	requiredEnvVars := []string{"LATITUDE", "LONGITUDE", "WEATHER_TIMEZONE"}
 	missingVars := []string{}
 
 	for _, val := range requiredEnvVars {
