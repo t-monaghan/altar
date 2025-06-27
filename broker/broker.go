@@ -205,6 +205,14 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 }
 
 func (b *HTTPBroker) sendConfig() error {
+	if b.DisplayConfig.TransitionEffect != nil {
+		next := *b.DisplayConfig.TransitionEffect + 1
+		b.DisplayConfig.TransitionEffect = &next
+	} else {
+		zero := 0
+		b.DisplayConfig.TransitionEffect = &zero
+	}
+
 	jsonData, err := json.Marshal(b.DisplayConfig)
 	if err != nil {
 		return fmt.Errorf("failed to marshal awtrix config into json: %w", err)

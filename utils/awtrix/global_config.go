@@ -11,6 +11,7 @@ type Config struct {
 	TempAppEnabled     *bool   `json:"TEMP,omitempty"`
 	BatteryAppEnabled  *bool   `json:"BAT,omitempty"`
 	Overlay            Overlay `json:"OVERLAY,omitempty"`
+	TransitionEffect   *int    `json:"TEFF,omitempty"`
 }
 
 // Overlay represents the set of available overlays for Awtrix devices.
