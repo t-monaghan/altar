@@ -37,22 +37,27 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 		initChannel()
 	}
 
+	found := false
+	progressOutOfAHundred := 0
+
 	var info Progress
-	select {
-	case info = <-checksChannel:
-		slog.Debug("githubchecks fetcher received message", "msg", info)
-	default:
-		ntfr.PushOnNextCall = false
 
-		return nil
-	}
+	for !found {
+		// drain the channel
+		select {
+		case info = <-checksChannel:
+			slog.Debug("githubchecks fetcher received message", "msg", info)
 
-	progressOutOfAHundred := int(float64(info.CompletedActions) / float64(info.TotalActions) * 100) //nolint:mnd
+			progressOutOfAHundred = int(float64(info.CompletedActions) / float64(info.TotalActions) * 100) //nolint:mnd
 
-	if ntfr.Data.Progress != nil && progressOutOfAHundred == *ntfr.Data.Progress {
-		ntfr.PushOnNextCall = false
+			if ntfr.Data.Progress != nil && progressOutOfAHundred != *ntfr.Data.Progress {
+				found = true
+			}
+		default:
+			ntfr.PushOnNextCall = false
 
-		return nil
+			return nil
+		}
 	}
 
 	ntfr.Data.Progress = &progressOutOfAHundred
