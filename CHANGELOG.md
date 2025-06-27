@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.0](https://github.com/t-monaghan/altar/compare/v1.0.0-pre...v1.0.0) (2025-06-27)
+
+
+### Bug Fixes
+
+* adds missing PushOnNextCall for github checks example ([#42](https://github.com/t-monaghan/altar/issues/42)) ([ff735b8](https://github.com/t-monaghan/altar/commit/ff735b8f255ccf1731d25c479b70bf43ad2340f6))
+* finishes implementation for weather example ([#45](https://github.com/t-monaghan/altar/issues/45)) ([d822d2d](https://github.com/t-monaghan/altar/commit/d822d2d00040bb5128c5d98f153c1669fd016f4e))
+* implements working examples for github ([#44](https://github.com/t-monaghan/altar/issues/44)) ([b16eb3d](https://github.com/t-monaghan/altar/commit/b16eb3d54a7e79063c5b0ce73c6cbff1c55455f9))
+
+
+### Miscellaneous Chores
+
+* release 1.0.0 ([#46](https://github.com/t-monaghan/altar/issues/46)) ([e01061b](https://github.com/t-monaghan/altar/commit/e01061bcdc89ed44f6b2b3a74b53f5b5d9e39a9e))
+
 ## [1.0.0-pre](https://github.com/t-monaghan/altar/compare/v0.2.1...v1.0.0-pre) (2025-06-24)
 
 
