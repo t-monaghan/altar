@@ -81,7 +81,7 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 
 	if progressOutOfAHundred == 100 { //nolint:mnd
 		ntfr.Data.Hold = &trueVal
-		ntfr.Data.Text = "jobs done"
+		ntfr.Data.Text = "passing"
 		ntfr.Data.Color = []int{0, 190, 0}
 
 		return nil
