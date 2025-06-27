@@ -44,6 +44,8 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 		return nil
 	}
 
+	ntfr.PushOnNextCall = true
+
 	progress := info.CompletedActions / info.TotalActions
 	ntfr.Data.Progress = &progress
 	ntfr.Data.ProgressC = []int{74, 194, 108}
