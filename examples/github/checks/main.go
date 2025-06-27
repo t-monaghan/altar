@@ -30,6 +30,9 @@ func initChannel() {
 
 // Fetcher receives data from the handler and prepares it to be posted by altar's broker.
 func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
+	falseVal := false
+	trueVal := true
+
 	if !channelInitialized {
 		initChannel()
 	}
@@ -62,8 +65,6 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 
 	if len(info.FailedActions) > 0 {
 		fiveHundred := 800
-		falseVal := false
-		trueVal := true
 		ntfr.Data.BlinkText = &fiveHundred
 		ntfr.Data.Color = []int{255, 0, 0}
 		ntfr.Data.Stack = &falseVal
@@ -75,6 +76,12 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 		}
 
 		return nil
+	}
+
+	if progressOutOfAHundred == 100 { //nolint:mnd
+		ntfr.Data.Hold = &trueVal
+		ntfr.Data.Text = "jobs done"
+		ntfr.Data.Color = []int{0, 190, 0}
 	}
 
 	ntfr.Data.Text = fmt.Sprintf("%v/%v jobs", info.CompletedActions, info.TotalActions)
