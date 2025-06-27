@@ -118,6 +118,7 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 			colour = dimWhite
 		default:
 			colour = red
+
 			slog.Error("github contribution count did not bin correctly", "value", contributionValue, "max", busiestDay)
 		}
 
@@ -154,7 +155,12 @@ func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
 	// contribution grid is in reverse chronological order, we reverse the drawing to match this.
 	slices.Reverse(drawing)
 
-	return application.ImageAndPosition{XPos: 0, Ypos: heightOfDisplay, Width: widthOfDisplay, Height: 1, Image: drawing}
+	return application.ImageAndPosition{
+		XPos:   0,
+		Ypos:   heightOfDisplay - 1,
+		Width:  widthOfDisplay,
+		Height: 1,
+		Image:  drawing}
 }
 
 const widthOfDisplay = 32
