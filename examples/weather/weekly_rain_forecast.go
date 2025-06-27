@@ -31,10 +31,9 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	query := req.URL.Query()
 	query.Add("latitude", os.Getenv("LATITUDE"))
 	query.Add("longitude", os.Getenv("LONGITUDE"))
+	query.Add("timezone", os.Getenv("WEATHER_TIMEZONE"))
 	query.Add("hourly", "precipitation_probability")
 
-	zone, _ := time.Now().Zone()
-	query.Add("timezone", zone)
 	req.URL.RawQuery = query.Encode()
 
 	response, err := client.Do(req)
@@ -52,10 +51,6 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	forecast, err := readForecastResponse(response)
 	if err != nil {
 		return HourlyForecast{}, false, fmt.Errorf("error reading forecast response: %w", err)
-	}
-
-	if len(forecast.Hourly.PrecipitationProbability) == 0 {
-		return HourlyForecast{}, false, ErrEmptyResponse
 	}
 
 	hourly := forecast.getHourlyForecast()
@@ -91,10 +86,17 @@ type forecastResponse struct {
 	Hourly               hourlyForecastResponse `json:"hourly"`
 }
 
+// ErrNon2xxStatus describes a response whose status is not in the 200 range.
+var ErrNon2xxStatus = errors.New("server responded to request with non-2xx status")
+
 func readForecastResponse(response *http.Response) (*forecastResponse, error) {
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response of rain forecast: %w", err)
+	}
+
+	if response.StatusCode < 200 || response.StatusCode > 299 {
+		return nil, fmt.Errorf("%w: %v", ErrNon2xxStatus, string(body))
 	}
 
 	forecast := &forecastResponse{}

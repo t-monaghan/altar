@@ -51,7 +51,7 @@ func main() {
 }
 
 func checkRequiredEnvironmentVariables() {
-	requiredEnvVars := []string{"LATITUDE", "LONGITUDE"}
+	requiredEnvVars := []string{"LATITUDE", "LONGITUDE", "WEATHER_TIMEZONE"}
 	missingVars := []string{}
 
 	for _, val := range requiredEnvVars {
