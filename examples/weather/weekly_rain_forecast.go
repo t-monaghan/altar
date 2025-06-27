@@ -31,10 +31,9 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	query := req.URL.Query()
 	query.Add("latitude", os.Getenv("LATITUDE"))
 	query.Add("longitude", os.Getenv("LONGITUDE"))
+	query.Add("timezone", os.Getenv("WEATHER_TIMEZONE"))
 	query.Add("hourly", "precipitation_probability")
 
-	zone, _ := time.Now().Zone()
-	query.Add("timezone", zone)
 	req.URL.RawQuery = query.Encode()
 
 	response, err := client.Do(req)
