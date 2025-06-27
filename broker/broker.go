@@ -102,19 +102,20 @@ func NewBroker(
 func (b *HTTPBroker) Start() {
 	if b.DebugMode {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
-	}
+	} else {
+		// avoid rebooting when debugging
+		err := b.sendConfig()
+		if err != nil {
+			slog.Error("error setting up initial awtrix configuration", "error", err)
+		}
 
-	err := b.sendConfig()
-	if err != nil {
-		slog.Error("error setting up initial awtrix configuration", "error", err)
-	}
+		slog.Info("rebooting awtrix device")
 
-	slog.Info("rebooting awtrix device")
-
-	// rebooting awtrix is required to ensure the configuration is applied
-	err = b.rebootAwtrix()
-	if err != nil {
-		slog.Error("error rebooting the awtrix device", "error", err)
+		// rebooting awtrix is required to ensure the configuration is applied
+		err = b.rebootAwtrix()
+		if err != nil {
+			slog.Error("error rebooting the awtrix device", "error", err)
+		}
 	}
 
 	go func() {
