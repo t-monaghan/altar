@@ -38,16 +38,23 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 	select {
 	case info = <-checksChannel:
 		slog.Debug("githubchecks fetcher received message", "msg", info)
-	default: // No data available in channel
+	default:
 		ntfr.PushOnNextCall = false
 
 		return nil
 	}
 
+	progress := int(float64(info.CompletedActions) / float64(info.TotalActions) * 100)
+
+	if progress == *ntfr.Data.Progress {
+		ntfr.PushOnNextCall = false
+
+		return nil
+	}
+
+	ntfr.Data.Progress = &progress
 	ntfr.PushOnNextCall = true
 
-	progress := int(float64(info.CompletedActions) / float64(info.TotalActions) * 100)
-	ntfr.Data.Progress = &progress
 	ntfr.Data.ProgressC = []int{74, 194, 108}
 	ntfr.Data.ProgressBC = []int{17, 99, 42}
 
