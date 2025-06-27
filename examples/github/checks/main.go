@@ -58,6 +58,7 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 
 	ntfr.Data.Progress = &progressOutOfAHundred
 	ntfr.PushOnNextCall = true
+	ntfr.Data.Stack = &falseVal
 
 	ntfr.Data.ProgressC = []int{74, 194, 108}
 	ntfr.Data.ProgressBC = []int{17, 99, 42}
@@ -68,7 +69,6 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 		fiveHundred := 800
 		ntfr.Data.BlinkText = &fiveHundred
 		ntfr.Data.Color = []int{255, 0, 0}
-		ntfr.Data.Stack = &falseVal
 		ntfr.Data.Hold = &trueVal
 		ntfr.Data.Text = fmt.Sprintf("%v failed", info.FailedActions[0])
 
