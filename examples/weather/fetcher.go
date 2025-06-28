@@ -4,7 +4,6 @@ package weather
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/t-monaghan/altar/application"
@@ -47,11 +46,6 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	}
 
 	colouredText := []application.TextWithColour{}
-	rainChanceString := strconv.Itoa(nextRain.PrecipitationProbability) + "% "
-
-	colouredText = append(colouredText, application.TextWithColour{
-		Colour: blueHex,
-		Text:   rainChanceString})
 
 	readableTime := nextRainInWords(nextRain)
 
@@ -61,6 +55,7 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	})
 
 	app.Data.Text = colouredText
+	app.Data.Overlay = awtrix.Rain
 
 	return nil
 }
@@ -72,13 +67,13 @@ func nextRainInWords(nextRain HourlyForecast) string {
 
 	switch {
 	case timeUntilRain < time.Minute:
-		readableTime = "in 1 min"
+		readableTime = "1 min"
 	case timeUntilRain < time.Hour:
-		readableTime = fmt.Sprintf("in %.0f mins", timeUntilRain.Minutes())
+		readableTime = fmt.Sprintf("%.0f mins", timeUntilRain.Minutes())
 	case timeUntilRain < 2*time.Hour:
-		readableTime = "in 1 hour"
+		readableTime = "1 hour"
 	case timeUntilRain < 6*time.Hour:
-		readableTime = fmt.Sprintf("in %.0f hours", timeUntilRain.Hours())
+		readableTime = fmt.Sprintf("%.0f hours", timeUntilRain.Hours())
 	default:
 		readableTime = nextRain.Time.Format("3PM Mon")
 	}
