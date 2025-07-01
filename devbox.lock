@@ -100,6 +100,54 @@
         }
       }
     },
+    "gosmee@latest": {
+      "last_modified": "2025-06-20T02:24:11Z",
+      "resolved": "github:NixOS/nixpkgs/076e8c6678d8c54204abcb4b1b14c366835a58bb#gosmee",
+      "source": "devbox-search",
+      "version": "0.26.1",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/9kwcfv57bf0xg8jccgm6x1j671y7amnn-gosmee-0.26.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/9kwcfv57bf0xg8jccgm6x1j671y7amnn-gosmee-0.26.1"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/7k02z732q0dph29281nbybjd624njqzw-gosmee-0.26.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/7k02z732q0dph29281nbybjd624njqzw-gosmee-0.26.1"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ivv2wqin1nn2qnpxr3ixv0l2d4a2lj7y-gosmee-0.26.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ivv2wqin1nn2qnpxr3ixv0l2d4a2lj7y-gosmee-0.26.1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/czxd67g47iyi8gb4571g5vm8pl78cz08-gosmee-0.26.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/czxd67g47iyi8gb4571g5vm8pl78cz08-gosmee-0.26.1"
+        }
+      }
+    },
     "watchexec@latest": {
       "last_modified": "2025-05-16T20:19:48Z",
       "resolved": "github:NixOS/nixpkgs/12a55407652e04dcf2309436eb06fef0d3713ef3#watchexec",

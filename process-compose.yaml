@@ -17,3 +17,6 @@ processes:
         path: /logger/api/health
       initial_delay_seconds: 1
       success_threshold: 1
+
+  webhook-proxy:
+    command: devbox run webhook-redirect
