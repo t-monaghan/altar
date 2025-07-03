@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/t-monaghan/altar/compare/v1.0.0...v1.0.1) (2025-07-03)
+
+
+### Bug Fixes
+
+* adds dim background to github graph ([#48](https://github.com/t-monaghan/altar/issues/48)) ([eb43913](https://github.com/t-monaghan/altar/commit/eb439136a9741280802626b2eaa740217d05ddbf))
+
 ## [1.0.0](https://github.com/t-monaghan/altar/compare/v1.0.0-pre...v1.0.0) (2025-06-27)
 
 
