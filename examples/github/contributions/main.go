@@ -84,7 +84,7 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 	return nil
 }
 
-const black = 0x000000
+const dimmestPossibleGrey = 0x222222
 const darkestGreen = 0x1D2F21
 const darkGreen = 0x254727
 const green = 0x307732
@@ -105,7 +105,7 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 
 		switch {
 		case contributionValue == 0:
-			colour = black
+			colour = dimmestPossibleGrey
 		case contributionValue <= busiestDay/8:
 			colour = darkestGreen
 		case contributionValue <= busiestDay/3:
@@ -142,6 +142,10 @@ func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	startOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	drawing := make([]int, widthOfDisplay)
+
+	for i := range drawing {
+		drawing[i] = dimmestPossibleGrey
+	}
 
 	for i := range 8 {
 		pastMonthStart := startOfThisMonth.AddDate(0, -i, 0)
