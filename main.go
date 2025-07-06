@@ -14,7 +14,7 @@ import (
 	"github.com/t-monaghan/altar/examples/buttons"
 	"github.com/t-monaghan/altar/examples/github/checks"
 	"github.com/t-monaghan/altar/examples/github/contributions"
-	"github.com/t-monaghan/altar/examples/stars"
+	"github.com/t-monaghan/altar/examples/github/stars"
 	"github.com/t-monaghan/altar/examples/weather"
 	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
