@@ -2,16 +2,17 @@
 
 # **A**wtrix **L**istens **T**o **A**ltar **R**equests
 
-> [!CAUTION]
-> This project is a work in progress and is not yet ready for use.
-
 ## Summary
 
-Altar is a library for golang that allows developers to create custom Applications for [Awtrix](https://blueforcer.github.io/awtrix3/#/) devices. Its aim is to provide a simple and intuitive manner to stand up a broker with a collection of applications to display on Awtrix supported devices.
+Altar is a framework to control [Awtrix](https://blueforcer.github.io/awtrix3/#/) displays.
+
+### How?
+
+Awtrix devices are thin clients, exposing an API that will let you manipulate the data of an Application or Notification. Altar builds on this providing a way to communicate between the outside world and the awtrix device. Altar does this by providing a broker, which has a set of Application and Notification routines, as well as a set of http handlers. Routines can be as simple as [polling the weather](examples/weather) or can be more involved such as being [triggered by a cli to watch GitHub action runs](examples/github/checks).
 
 ### See it in action
 
-You don't need an awtrix device to run this project. To see it in action you can install [devbox](https://www.jetify.com/devbox/) and run `devbox services up` to see the requests from the example application get captured by a request logger.
+You don't need an awtrix device to run this project. To see it in action you can install [devbox](https://www.jetify.com/devbox/) and run `devbox services up --process-compose-file scripts/request-logger-pc.yaml` to see the requests from the example application get captured by a request logger.
 
 > [!WARNING]
 > Devbox won't start a new shell without a file at `.env`, this is an issue I've raised with devbox [here](https://github.com/issues/created?issue=jetify-com%7Cdevbox%7C2504). You can run `cp .env.example .env` to have this file created with some defaults.
@@ -56,6 +57,7 @@ func main() {
 	broker, err := broker.NewBroker(
 		"YOUR_AWTRIX_IP_HERE",
 		appList,
+		nil,
 	)
 
 	if err != nil {
@@ -75,7 +77,7 @@ go run .
 
 ### Going deeper
 
-Fetchers with more functionality can be found in the [examples](https://github.com/t-monaghan/altar/tree/main/examples) package.
+Routines with more functionality can be found in the [examples](https://github.com/t-monaghan/altar/tree/main/examples) package.
 
 ## Running locally
 
