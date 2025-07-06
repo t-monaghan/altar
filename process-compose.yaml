@@ -4,19 +4,3 @@ is_strict: true
 processes:
   altar:
     command: watchexec --exts go --restart go run .
-    depends_on:
-      request-logger:
-        condition: process_healthy
-
-  request-logger:
-    command: watchexec --watch cmd/request_logger --restart devbox run request-logger
-    readiness_probe:
-      http_get:
-        host: localhost
-        port: 8080
-        path: /logger/api/health
-      initial_delay_seconds: 1
-      success_threshold: 1
-
-  webhook-proxy:
-    command: devbox run webhook-redirect
