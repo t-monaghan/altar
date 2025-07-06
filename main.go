@@ -14,8 +14,8 @@ import (
 	"github.com/t-monaghan/altar/examples/buttons"
 	"github.com/t-monaghan/altar/examples/github/checks"
 	"github.com/t-monaghan/altar/examples/github/contributions"
+	"github.com/t-monaghan/altar/examples/stars"
 	"github.com/t-monaghan/altar/examples/weather"
-	"github.com/t-monaghan/altar/examples/webhooks/stars"
 	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
 )
@@ -39,7 +39,7 @@ func main() {
 	checkRequiredEnvironmentVariables()
 
 	brkr, err := broker.NewBroker(
-		"172.20.10.13",
+		"192.168.86.23",
 		appList,
 		handlers,
 		broker.DisableAllDefaultApps(),
