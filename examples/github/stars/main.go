@@ -32,6 +32,7 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 	if !channelInitialized {
 		initChannel()
 	}
+
 	var starrer string
 	select {
 	case starrer = <-starrerChannel:
@@ -41,22 +42,23 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 
 		return nil
 	}
+
 	ntfr.PushOnNextCall = true
 	ntfr.Data.Text = starrer
 
 	return nil
 }
 
-type GitHubWebhook struct {
+type gitHubWebhook struct {
 	Payload string `json:"payload"`
 }
 
-type WebhookPayload struct {
-	Sender Sender `json:"sender"`
+type webhookPayload struct {
+	Sender sender `json:"sender"`
 	Action string `json:"action"`
 }
 
-type Sender struct {
+type sender struct {
 	Login string `json:"login"`
 }
 
@@ -75,23 +77,26 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 	}
 
 	// First, parse the outer JSON to get the payload string
-	var githubWebhook GitHubWebhook
+	var githubWebhook gitHubWebhook
 	if err := json.Unmarshal(body, &githubWebhook); err != nil {
 		slog.Error("failed to unmarshal outer webhook JSON", "error", err)
 		rsp.WriteHeader(http.StatusBadRequest)
+
 		return
 	}
 
 	// Then parse the payload string to get the actual data
-	var webhookPayload WebhookPayload
+	var webhookPayload webhookPayload
 	if err := json.Unmarshal([]byte(githubWebhook.Payload), &webhookPayload); err != nil {
 		slog.Error("failed to unmarshal payload JSON", "error", err)
 		rsp.WriteHeader(http.StatusBadRequest)
+
 		return
 	}
 
 	if webhookPayload.Action != "created" {
 		slog.Warn("action", "action", webhookPayload.Action)
+
 		return
 	}
 
