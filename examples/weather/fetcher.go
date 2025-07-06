@@ -74,11 +74,11 @@ func nextRainInWords(nextRain HourlyForecast) string {
 	case timeUntilRain < time.Minute:
 		readableTime = "in 1 min"
 	case timeUntilRain < time.Hour:
-		readableTime = fmt.Sprintf("in %.0f mins", timeUntilRain.Minutes())
+		readableTime = fmt.Sprintf("in %.0f m", timeUntilRain.Minutes())
 	case timeUntilRain < 2*time.Hour:
 		readableTime = "in 1 hour"
 	case timeUntilRain < 6*time.Hour:
-		readableTime = fmt.Sprintf("in %.0f hours", timeUntilRain.Hours())
+		readableTime = fmt.Sprintf("in %.0f h", timeUntilRain.Hours())
 	default:
 		readableTime = nextRain.Time.Format("3PM Mon")
 	}
