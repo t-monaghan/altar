@@ -76,19 +76,10 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// First, parse the outer JSON to get the payload string
-	var githubWebhook gitHubWebhook
-	if err := json.Unmarshal(body, &githubWebhook); err != nil {
-		slog.Error("failed to unmarshal outer webhook JSON", "error", err)
-		rsp.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
-
 	// Then parse the payload string to get the actual data
 	var webhookPayload webhookPayload
-	if err := json.Unmarshal([]byte(githubWebhook.Payload), &webhookPayload); err != nil {
-		slog.Error("failed to unmarshal payload JSON", "error", err)
+	if err := json.Unmarshal(body, &webhookPayload); err != nil {
+		slog.Error("failed to unmarshal payload JSON", "error", err, "body", body)
 		rsp.WriteHeader(http.StatusBadRequest)
 
 		return
