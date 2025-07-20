@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const precipitationChanceThreshold = 20
+
 // HourlyForecast represents a single hourly forecast entry with parsed time.
 type HourlyForecast struct {
 	Time                     time.Time
@@ -63,7 +65,7 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	foundRain := false
 
 	for _, hour := range hourly {
-		if hour.PrecipitationProbability > 0 {
+		if hour.PrecipitationProbability > precipitationChanceThreshold {
 			nextRain = hour
 			foundRain = true
 

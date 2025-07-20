@@ -32,14 +32,21 @@ func main() {
 		"/api/buttons":          buttons.Handler,
 		"/api/webhook":          stars.Handler,
 	}
-	starWatcher.PollRate = time.Second
+	starWatcher.PollRate = time.Second * 5
 
 	appList := []utils.Routine{&starWatcher, &weather}
 
 	checkRequiredEnvironmentVariables()
 
+	ipAddr := os.Getenv("AWTRIX_IP")
+	if ipAddr == "" {
+		slog.Warn("no IP address was provided, defaulting to localhost")
+
+		ipAddr = "localhost"
+	}
+
 	brkr, err := broker.NewBroker(
-		"192.168.86.23",
+		ipAddr,
 		appList,
 		handlers,
 		broker.DisableAllDefaultApps(),
