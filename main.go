@@ -35,7 +35,9 @@ func main() {
 
 	ipAddr := os.Getenv("AWTRIX_IP")
 	if ipAddr == "" {
-		panic("no IP address set for awtrix")
+		slog.Warn("no IP address was provided, defaulting to localhost")
+
+		ipAddr = "localhost"
 	}
 
 	brkr, err := broker.NewBroker(
