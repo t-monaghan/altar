@@ -33,8 +33,15 @@ func main() {
 
 	checkRequiredEnvironmentVariables()
 
+	ipAddr := os.Getenv("AWTRIX_IP")
+	if ipAddr == "" {
+		slog.Warn("no IP address was provided, defaulting to localhost")
+
+		ipAddr = "localhost"
+	}
+
 	brkr, err := broker.NewBroker(
-		"127.0.0.1",
+		ipAddr,
 		appList,
 		handlers,
 		broker.DisableAllDefaultApps(),
