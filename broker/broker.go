@@ -248,7 +248,7 @@ func (b *HTTPBroker) sendConfig() error {
 // request.
 var ErrUnknownRoutineType = errors.New("unknown routine type")
 
-type RoutineInfo struct {
+type routineInfo struct {
 	Name    string
 	IsAnApp bool
 }
@@ -264,36 +264,39 @@ func (b *HTTPBroker) push(routine utils.Routine) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal %v data into json: %w", routine.GetName(), err)
 	}
+
 	bufferedJSON := bytes.NewBuffer(jsonData)
 
 	err = b.postRequestToAwtrix(bufferedJSON, extractRoutineInfo(routine))
 	if err != nil {
 		return err
 	}
+
 	slog.Debug("pushed", "routine-name", routine.GetName())
 
 	return err
 }
 
-func extractRoutineInfo(r utils.Routine) RoutineInfo {
+func extractRoutineInfo(routine utils.Routine) routineInfo {
 	var isAnApp bool
-	switch r.(type) {
+	switch routine.(type) {
 	case *application.Application:
 		isAnApp = true
 	default:
 		isAnApp = false
 	}
-	return RoutineInfo{Name: r.GetName(), IsAnApp: isAnApp}
+
+	return routineInfo{Name: routine.GetName(), IsAnApp: isAnApp}
 }
 
-func (b *HTTPBroker) postRequestToAwtrix(bufferedJSON *bytes.Buffer, ri RoutineInfo) error {
+func (b *HTTPBroker) postRequestToAwtrix(bufferedJSON *bytes.Buffer, info routineInfo) error {
 	port := ""
 	if b.MockAwtrix {
 		port = mockAwtrixPort
 	}
 
 	address := fmt.Sprintf("%v%v", b.clockAddress, port)
-	if ri.IsAnApp {
+	if info.IsAnApp {
 		address += "/api/custom"
 	} else {
 		address += "/api/notify"
@@ -301,32 +304,32 @@ func (b *HTTPBroker) postRequestToAwtrix(bufferedJSON *bytes.Buffer, ri RoutineI
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
 	if err != nil {
-		return fmt.Errorf("failed to create post request for %v: %w", ri.Name, err)
+		return fmt.Errorf("failed to create post request for %v: %w", info.Name, err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
-	if ri.IsAnApp {
+	if info.IsAnApp {
 		q := req.URL.Query()
-		q.Add("name", ri.Name)
+		q.Add("name", info.Name)
 		req.URL.RawQuery = q.Encode()
 	}
 
 	resp, err := b.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform post request for %v: %w", ri, err)
+		return fmt.Errorf("failed to perform post request for %v: %w", info, err)
 	}
 
 	defer func() {
 		closeErr := resp.Body.Close()
 		if err == nil && closeErr != nil {
-			err = fmt.Errorf("%w for routine %v: %w", utils.ErrClosingResponseBody, ri, closeErr)
+			err = fmt.Errorf("%w for routine %v: %w", utils.ErrClosingResponseBody, info, closeErr)
 		}
 	}()
 
 	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
 		slog.Error("awtrix has responded to push with non-2xx http response",
-			"http-status", resp.Status, "routine", ri)
+			"http-status", resp.Status, "routine", info)
 	}
 
 	return err
