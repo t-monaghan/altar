@@ -33,8 +33,13 @@ func main() {
 
 	checkRequiredEnvironmentVariables()
 
+	ipAddr := os.Getenv("AWTRIX_IP")
+	if ipAddr == "" {
+		panic("no IP address set for awtrix")
+	}
+
 	brkr, err := broker.NewBroker(
-		"127.0.0.1",
+		ipAddr,
 		appList,
 		handlers,
 		broker.DisableAllDefaultApps(),
