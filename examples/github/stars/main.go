@@ -53,10 +53,6 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 	return nil
 }
 
-type gitHubWebhook struct {
-	Payload string `json:"payload"`
-}
-
 type webhookPayload struct {
 	Sender sender `json:"sender"`
 	Action string `json:"action"`
@@ -131,6 +127,7 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 
 func validateSignature(signature string, secret string, body []byte) int {
 	hash := hmac.New(sha256.New, []byte(secret))
+
 	_, err := hash.Write(body)
 	if err != nil {
 		slog.Error("failed to write github payload to hmac")

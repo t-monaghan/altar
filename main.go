@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
@@ -32,7 +31,6 @@ func main() {
 		"/api/buttons":          buttons.Handler,
 		"/api/webhook":          stars.Handler,
 	}
-	starWatcher.PollRate = time.Second * 5
 
 	appList := []utils.Routine{&starWatcher, &weather}
 
