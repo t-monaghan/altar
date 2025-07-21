@@ -14,13 +14,11 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/t-monaghan/altar/application"
-	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
 	"github.com/t-monaghan/altar/utils/awtrix"
 )
@@ -250,6 +248,11 @@ func (b *HTTPBroker) sendConfig() error {
 // request.
 var ErrUnknownRoutineType = errors.New("unknown routine type")
 
+type routineInfo struct {
+	Name    string
+	IsAnApp bool
+}
+
 func (b *HTTPBroker) push(routine utils.Routine) error {
 	if !routine.ShouldPushToAwtrix() {
 		slog.Debug("skipping push for routine", "routine", routine.GetName())
@@ -264,22 +267,7 @@ func (b *HTTPBroker) push(routine utils.Routine) error {
 
 	bufferedJSON := bytes.NewBuffer(jsonData)
 
-	port := ""
-	if b.MockAwtrix {
-		port = mockAwtrixPort
-	}
-
-	var address string
-	switch routine.(type) {
-	case *application.Application:
-		address = fmt.Sprintf("%v%v/api/custom?name=%v", b.clockAddress, port, url.QueryEscape(routine.GetName()))
-	case *notifier.Notifier:
-		address = fmt.Sprintf("%v%v/api/notify", b.clockAddress, port)
-	default:
-		return fmt.Errorf("%w for routine: %v", ErrUnknownRoutineType, routine.GetName())
-	}
-
-	err = b.postRequestToAwtrix(address, bufferedJSON, routine.GetName())
+	err = b.postRequestToAwtrix(bufferedJSON, extractRoutineInfo(routine))
 	if err != nil {
 		return err
 	}
@@ -289,29 +277,59 @@ func (b *HTTPBroker) push(routine utils.Routine) error {
 	return err
 }
 
-func (b *HTTPBroker) postRequestToAwtrix(address string, bufferedJSON *bytes.Buffer, routineName string) error {
+func extractRoutineInfo(routine utils.Routine) routineInfo {
+	var isAnApp bool
+	switch routine.(type) {
+	case *application.Application:
+		isAnApp = true
+	default:
+		isAnApp = false
+	}
+
+	return routineInfo{Name: routine.GetName(), IsAnApp: isAnApp}
+}
+
+func (b *HTTPBroker) postRequestToAwtrix(bufferedJSON *bytes.Buffer, info routineInfo) error {
+	port := ""
+	if b.MockAwtrix {
+		port = mockAwtrixPort
+	}
+
+	address := fmt.Sprintf("%v%v", b.clockAddress, port)
+	if info.IsAnApp {
+		address += "/api/custom"
+	} else {
+		address += "/api/notify"
+	}
+
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, address, bufferedJSON)
 	if err != nil {
-		return fmt.Errorf("failed to create post request for %v: %w", routineName, err)
+		return fmt.Errorf("failed to create post request for %v: %w", info.Name, err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
+	if info.IsAnApp {
+		q := req.URL.Query()
+		q.Add("name", info.Name)
+		req.URL.RawQuery = q.Encode()
+	}
+
 	resp, err := b.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform post request for %v: %w", routineName, err)
+		return fmt.Errorf("failed to perform post request for %v: %w", info, err)
 	}
 
 	defer func() {
 		closeErr := resp.Body.Close()
 		if err == nil && closeErr != nil {
-			err = fmt.Errorf("%w for routine %v: %w", utils.ErrClosingResponseBody, routineName, closeErr)
+			err = fmt.Errorf("%w for routine %v: %w", utils.ErrClosingResponseBody, info, closeErr)
 		}
 	}()
 
 	if utils.ResponseStatusIsNot2xx(resp.StatusCode) {
 		slog.Error("awtrix has responded to push with non-2xx http response",
-			"http-status", resp.Status, "routine", routineName)
+			"http-status", resp.Status, "routine", info)
 	}
 
 	return err
