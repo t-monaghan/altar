@@ -2,10 +2,14 @@
 package stars
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/t-monaghan/altar/notifier"
@@ -76,7 +80,31 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Then parse the payload string to get the actual data
+	sig := req.Header.Get("X-Hub-Signature-256")
+	if sig == "" {
+		slog.Error("did not find signature in webhook request")
+		rsp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	secret := os.Getenv("STARGAZER_WEBHOOK_SECRET")
+	if secret == "" {
+		slog.Error("could not find stargazer secret")
+		rsp.WriteHeader(http.StatusServiceUnavailable)
+
+		return
+	}
+
+	statusCode := validateSignature(sig, secret, body)
+	if statusCode != 0 {
+		rsp.WriteHeader(statusCode)
+
+		return
+	}
+
+	slog.Debug("webhook with matching signature received")
+
 	var webhookPayload webhookPayload
 	if err := json.Unmarshal(body, &webhookPayload); err != nil {
 		slog.Error("failed to unmarshal payload JSON", "error", err, "body", body)
@@ -86,7 +114,8 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 	}
 
 	if webhookPayload.Action != "created" {
-		slog.Warn("action", "action", webhookPayload.Action)
+		slog.Debug("non-created action received from github starred webhook", "action", webhookPayload.Action)
+		rsp.WriteHeader(http.StatusOK)
 
 		return
 	}
@@ -98,6 +127,27 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 	}
 
 	rsp.WriteHeader(http.StatusOK)
+}
+
+func validateSignature(signature string, secret string, body []byte) int {
+	hash := hmac.New(sha256.New, []byte(secret))
+	_, err := hash.Write(body)
+	if err != nil {
+		slog.Error("failed to write github payload to hmac")
+
+		return http.StatusInternalServerError
+	}
+
+	expected := hash.Sum(nil)
+	expectedSig := "sha256=" + hex.EncodeToString(expected)
+
+	if !hmac.Equal([]byte(expectedSig), []byte(signature)) {
+		slog.Warn("webhook received with mismatching signature")
+
+		return http.StatusUnauthorized
+	}
+
+	return 0
 }
 
 // Reset clears the state of the channel used to communicate between the api handler and the altar fetcher.
