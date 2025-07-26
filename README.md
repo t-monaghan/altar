@@ -86,7 +86,3 @@ This project requires some environment variables to be set for it to be run loca
 ### Common issues
 
 If you get the error `Error: failed parsing .env file. Error: failed to open file: .../altar/.env` please create a `.env` file with the required environment variables. This can be done with `cp .env.example .env`, then to enter the devbox shell you can run `direnv reload` or `devbox shell`.
-
-## Contributing
-
-This project is not currently accepting contributions, however I will be streaming my development of this project through a Zed channel [here](https://zed.dev/channel/altar-22876).
