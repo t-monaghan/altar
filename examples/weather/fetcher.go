@@ -4,7 +4,6 @@ package weather
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/t-monaghan/altar/application"
@@ -14,8 +13,15 @@ import (
 const blueHex = "#3396FF"
 const whiteHex = "#FFFFFF"
 
+var blueIntSlice = []int{82, 96, 255}
+
 // Fetcher displays information about precipitation in Melbourne.
 func Fetcher(app *application.Application, client *http.Client) error {
+	app.Data.Progress = nil
+	app.Data.ProgressC = nil
+	app.Data.ProgressBC = nil
+	app.Data.Overlay = ""
+
 	precip, err := currentPrecipitation(client)
 	if err != nil {
 		return fmt.Errorf("error querying current precipitation: %w", err)
@@ -31,6 +37,7 @@ func Fetcher(app *application.Application, client *http.Client) error {
 
 		return nil
 	}
+
 	// removes any previous application of the rain effect
 	app.Data.Overlay = ""
 	app.GlobalConfig.Overlay = awtrix.Clear
@@ -47,11 +54,6 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	}
 
 	colouredText := []application.TextWithColour{}
-	rainChanceString := strconv.Itoa(nextRain.PrecipitationProbability) + "% "
-
-	colouredText = append(colouredText, application.TextWithColour{
-		Colour: blueHex,
-		Text:   rainChanceString})
 
 	readableTime := nextRainInWords(nextRain)
 
@@ -61,6 +63,8 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	})
 
 	app.Data.Text = colouredText
+	app.Data.Progress = &nextRain.PrecipitationProbability
+	app.Data.ProgressC = blueIntSlice
 
 	return nil
 }

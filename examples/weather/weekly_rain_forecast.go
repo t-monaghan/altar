@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const precipitationChanceThreshold = 20
+const precipitationChanceThreshold = 25
 
 // HourlyForecast represents a single hourly forecast entry with parsed time.
 type HourlyForecast struct {
@@ -35,6 +35,7 @@ func weeklyRainForecast(client *http.Client) (HourlyForecast, bool, error) {
 	query.Add("longitude", os.Getenv("LONGITUDE"))
 	query.Add("timezone", os.Getenv("WEATHER_TIMEZONE"))
 	query.Add("hourly", "precipitation_probability")
+	query.Add("model", "bom_access_global")
 
 	req.URL.RawQuery = query.Encode()
 

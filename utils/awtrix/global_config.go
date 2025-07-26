@@ -17,9 +17,14 @@ type Config struct {
 // Overlay represents the set of available overlays for Awtrix devices.
 type Overlay string
 
+//nolint:revive//reason: Overlay is a transparent enum and does not require documentation.
 const (
-	// Rain will present a drizzle over the display.
-	Rain Overlay = "rain"
 	// Clear will remove any previously set overlays.
-	Clear Overlay = "clear"
+	Clear   Overlay = "clear"
+	Drizzle Overlay = "drizzle"
+	Rain    Overlay = "rain"
+	Storm   Overlay = "storm"
+	Thunder Overlay = "thunder"
+	Snow    Overlay = "snow"
+	Frost   Overlay = "frost"
 )
