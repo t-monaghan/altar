@@ -20,9 +20,9 @@ import (
 )
 
 func main() {
-	// githubChecks := notifier.NewNotifier("github checks", checks.Fetcher)
+	githubChecks := notifier.NewNotifier("github checks", checks.Fetcher)
 	weather := application.NewApplication("rain forecast", weather.Fetcher)
-	// githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
+	githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
 	starWatcher := notifier.NewNotifier("star watcher", stars.Fetcher)
 
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
@@ -32,7 +32,12 @@ func main() {
 		"/api/webhook":          stars.Handler,
 	}
 
-	appList := []utils.Routine{&starWatcher, &weather}
+	appList := []utils.Routine{
+		&weather,
+		&githubContributions,
+		&githubChecks,
+		&starWatcher,
+	}
 
 	checkRequiredEnvironmentVariables()
 
