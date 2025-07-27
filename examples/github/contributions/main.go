@@ -4,6 +4,7 @@ package contributions
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -73,6 +74,16 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 	app.PushOnNextCall = true
 
 	graph := contributionGraphsDrawInstruction(rawCount)
+
+	sum := 0
+
+	for _, count := range rawCount {
+		sum += count
+	}
+
+	t := true
+	app.Data.Text = fmt.Sprintf("%v", sum)
+	app.Data.TopText = &t
 
 	firstWeekOfMonth := firstWeekOfMonthDrawInstruction()
 
