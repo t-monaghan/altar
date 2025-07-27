@@ -3,11 +3,14 @@
 package contributions
 
 import (
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,7 +19,7 @@ import (
 
 //nolint:gochecknoglobals
 var (
-	contributionsChannel chan []int
+	contributionsChannel chan []string
 	once                 sync.Once
 	channelInitialized   bool
 )
@@ -35,9 +38,9 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var contributions []int
+	var colours []string
 
-	err = json.Unmarshal(body, &contributions)
+	err = json.Unmarshal(body, &colours)
 	if err != nil {
 		slog.Error("github contributions handler failed to unmarshal request", "error", err)
 		rsp.WriteHeader(http.StatusBadRequest)
@@ -46,7 +49,7 @@ func Handler(rsp http.ResponseWriter, req *http.Request) {
 	}
 
 	select {
-	case contributionsChannel <- contributions:
+	case contributionsChannel <- colours:
 	default:
 		slog.Warn("github contributions channel is full, dropping message")
 	}
@@ -60,10 +63,10 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 		initChannel()
 	}
 
-	var rawCount []int
+	var contributionColours []string
 	select {
-	case rawCount = <-contributionsChannel:
-		slog.Debug("contributions fetcher received contributions count", "length-of-count", len(rawCount))
+	case contributionColours = <-contributionsChannel:
+		slog.Debug("contributions fetcher received contributions count", "length-of-count", len(contributionColours))
 	default:
 		app.PushOnNextCall = false
 
@@ -72,7 +75,7 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 
 	app.PushOnNextCall = true
 
-	graph := contributionGraphsDrawInstruction(rawCount)
+	graph := contributionGraphsDrawInstruction(contributionColours)
 
 	firstWeekOfMonth := firstWeekOfMonthDrawInstruction()
 
@@ -92,37 +95,26 @@ const brightGreen = 0x3AA63C
 const dimWhite = 0x888888
 const red = 0xFF0000
 
-func contributionGraphsDrawInstruction(allContributions []int) application.ImageAndPosition {
+func contributionGraphsDrawInstruction(allContributions []string) application.ImageAndPosition {
 	indexBackTo := len(allContributions) - daysWillFitOnDisplay()
 	displayableContributions := allContributions[indexBackTo:]
-	busiestDay := slices.Max(displayableContributions)
+	// busiestDay := slices.Max(displayableContributions)
 	transformed := transformRightThenDownToDownThenRight(displayableContributions)
 
 	painted := make([]int, widthOfDisplay*daysInAWeek)
 
 	for pos, contributionValue := range transformed {
-		var colour int
-
-		switch {
-		case contributionValue == 0:
-			colour = black
-		case contributionValue <= busiestDay/8:
-			colour = darkestGreen
-		case contributionValue <= busiestDay/3:
-			colour = darkGreen
-		case contributionValue <= busiestDay/3*2:
-			colour = green
-		case contributionValue < busiestDay:
-			colour = brightGreen
-		case contributionValue == busiestDay:
-			colour = dimWhite
-		default:
-			colour = red
-
-			slog.Error("github contribution count did not bin correctly", "value", contributionValue, "max", busiestDay)
+		if contributionValue != "" {
+			b, _ := hex.DecodeString(strings.TrimPrefix(contributionValue, "#"))
+			num := int(binary.LittleEndian.Uint16(b))
+			// zero contributions are given a bluish colour
+			if num == 60907 {
+				num = 0
+			}
+			painted[pos] = num
+		} else {
+			painted[pos] = 0x0
 		}
-
-		painted[pos] = colour
 	}
 
 	return application.ImageAndPosition{
@@ -173,8 +165,8 @@ const heightOfDisplay = 8
 
 const daysInAWeek = 7
 
-func transformRightThenDownToDownThenRight(contributions []int) []int {
-	vertWeeks := make([]int, widthOfDisplay*daysInAWeek)
+func transformRightThenDownToDownThenRight(contributions []string) []string {
+	vertWeeks := make([]string, widthOfDisplay*daysInAWeek)
 
 	weeksHandled := 0
 
@@ -201,7 +193,7 @@ const channelBufferSize = 5
 
 func initChannel() {
 	once.Do(func() {
-		contributionsChannel = make(chan []int, channelBufferSize)
+		contributionsChannel = make(chan []string, channelBufferSize)
 		channelInitialized = true
 	})
 }

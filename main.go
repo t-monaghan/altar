@@ -14,16 +14,14 @@ import (
 	"github.com/t-monaghan/altar/examples/github/checks"
 	"github.com/t-monaghan/altar/examples/github/contributions"
 	"github.com/t-monaghan/altar/examples/github/stars"
-	"github.com/t-monaghan/altar/examples/weather"
-	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
 )
 
 func main() {
 	// githubChecks := notifier.NewNotifier("github checks", checks.Fetcher)
-	weather := application.NewApplication("rain forecast", weather.Fetcher)
-	// githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
-	starWatcher := notifier.NewNotifier("star watcher", stars.Fetcher)
+	// weather := application.NewApplication("rain forecast", weather.Fetcher)
+	githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
+	// starWatcher := notifier.NewNotifier("star watcher", stars.Fetcher)
 
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"/api/pipeline-watcher": checks.Handler,
@@ -32,7 +30,11 @@ func main() {
 		"/api/webhook":          stars.Handler,
 	}
 
-	appList := []utils.Routine{&starWatcher, &weather}
+	appList := []utils.Routine{
+		// &starWatcher,
+		// &weather,
+		&githubContributions,
+	}
 
 	checkRequiredEnvironmentVariables()
 
