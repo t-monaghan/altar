@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.1](https://github.com/t-monaghan/altar/compare/v1.1.0...v1.1.1) (2025-07-27)
+
+
+### Bug Fixes
+
+* displays total contribution count ([#71](https://github.com/t-monaghan/altar/issues/71)) ([50b1d8d](https://github.com/t-monaghan/altar/commit/50b1d8d6d5e13600d53fc02c3f8eee14ecba1939))
+* improves weather example ([#70](https://github.com/t-monaghan/altar/issues/70)) ([70b1860](https://github.com/t-monaghan/altar/commit/70b1860acb57a58523ec2d04b2fb0a3ac2b29212))
+* removes blinking text on github checks ([#57](https://github.com/t-monaghan/altar/issues/57)) ([c30c870](https://github.com/t-monaghan/altar/commit/c30c87031ead40c0f2d0d24c66fa26bcb0a6c060))
+* uses all examples in main ([#72](https://github.com/t-monaghan/altar/issues/72)) ([b44db2f](https://github.com/t-monaghan/altar/commit/b44db2f6acabf8e6bd0ab1cc2f1c1f5b095f02f0))
+
 ## [1.1.0](https://github.com/t-monaghan/altar/compare/v1.0.0...v1.1.0) (2025-07-21)
 
 
