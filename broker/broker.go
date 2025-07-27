@@ -172,7 +172,6 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 				}
 
 				mutateConfigAndSetPollRate.Lock()
-				brkr.DisplayConfig = mergeConfig(brkr.DisplayConfig, app.GetGlobalConfig())
 
 				if app.GetPollRate() < quickestPoll {
 					quickestPoll = app.GetPollRate()
@@ -408,15 +407,4 @@ func (b *HTTPBroker) rebootAwtrix() error {
 	}
 
 	return err
-}
-
-func mergeConfig(left awtrix.Config, right awtrix.Config) awtrix.Config {
-	keep := awtrix.Config{}
-	if right.Overlay != "" {
-		keep.Overlay = right.Overlay
-	} else if left.Overlay != "" {
-		keep.Overlay = left.Overlay
-	}
-
-	return keep
 }
