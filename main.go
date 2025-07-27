@@ -57,6 +57,9 @@ func main() {
 
 	brkr.DebugMode = true
 
+	ten := 10
+	brkr.DisplayConfig.TransitionEffect = &ten
+
 	if err != nil {
 		slog.Error("error instantiating new broker", "error", err)
 		os.Exit(1)

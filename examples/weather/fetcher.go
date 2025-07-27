@@ -4,18 +4,28 @@ package weather
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
-const blueHex = "#3396FF"
 const whiteHex = "#FFFFFF"
 
 // Fetcher displays information about precipitation in Melbourne.
 func Fetcher(app *application.Application, client *http.Client) error {
+	app.Data.Progress = nil
+	app.Data.ProgressC = nil
+	app.Data.ProgressBC = nil
+
+	blueIntSlice := []int{82, 96, 255}
+	one := 1
+	app.Data.Repeat = &one
+	four := 4
+	app.Data.Duration = &four
+	app.Data.Overlay = awtrix.Clear
+	app.GlobalConfig.Overlay = awtrix.Clear
+
 	precip, err := currentPrecipitation(client)
 	if err != nil {
 		return fmt.Errorf("error querying current precipitation: %w", err)
@@ -25,12 +35,12 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	app.Data.ScrollSpeed = &thirty
 
 	if precip > 0 {
-		app.Data.Text = fmt.Sprintf("Raining: %.0fmm", precip)
-		app.Data.Overlay = awtrix.Rain
+		app.Data.Text = "Raining"
 		app.GlobalConfig.Overlay = awtrix.Rain
 
 		return nil
 	}
+
 	// removes any previous application of the rain effect
 	app.Data.Overlay = ""
 	app.GlobalConfig.Overlay = awtrix.Clear
@@ -41,17 +51,10 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	}
 
 	if !foundRain {
-		app.Data.Text = "sunny week"
-
 		return nil
 	}
 
 	colouredText := []application.TextWithColour{}
-	rainChanceString := strconv.Itoa(nextRain.PrecipitationProbability) + "% "
-
-	colouredText = append(colouredText, application.TextWithColour{
-		Colour: blueHex,
-		Text:   rainChanceString})
 
 	readableTime := nextRainInWords(nextRain)
 
@@ -61,6 +64,8 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	})
 
 	app.Data.Text = colouredText
+	app.Data.Progress = &nextRain.PrecipitationProbability
+	app.Data.ProgressC = blueIntSlice
 
 	return nil
 }

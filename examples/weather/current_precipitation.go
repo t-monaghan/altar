@@ -21,6 +21,7 @@ func currentPrecipitation(client *http.Client) (float64, error) {
 	query.Add("latitude", os.Getenv("LATITUDE"))
 	query.Add("longitude", os.Getenv("LONGITUDE"))
 	query.Add("current", "precipitation")
+	query.Add("model", "bom_access_global")
 	req.URL.RawQuery = query.Encode()
 
 	response, err := client.Do(req)
