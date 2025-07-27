@@ -10,17 +10,21 @@ import (
 	"github.com/t-monaghan/altar/utils/awtrix"
 )
 
-const blueHex = "#3396FF"
 const whiteHex = "#FFFFFF"
-
-var blueIntSlice = []int{82, 96, 255}
 
 // Fetcher displays information about precipitation in Melbourne.
 func Fetcher(app *application.Application, client *http.Client) error {
 	app.Data.Progress = nil
 	app.Data.ProgressC = nil
 	app.Data.ProgressBC = nil
-	app.Data.Overlay = ""
+
+	blueIntSlice := []int{82, 96, 255}
+	one := 1
+	app.Data.Repeat = &one
+	four := 4
+	app.Data.Duration = &four
+	app.Data.Overlay = awtrix.Clear
+	app.GlobalConfig.Overlay = awtrix.Clear
 
 	precip, err := currentPrecipitation(client)
 	if err != nil {
@@ -31,8 +35,7 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	app.Data.ScrollSpeed = &thirty
 
 	if precip > 0 {
-		app.Data.Text = fmt.Sprintf("Raining: %.0fmm", precip)
-		app.Data.Overlay = awtrix.Rain
+		app.Data.Text = "Raining"
 		app.GlobalConfig.Overlay = awtrix.Rain
 
 		return nil
@@ -49,8 +52,6 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	}
 
 	if !foundRain {
-		app.Data.Text = "sunny week"
-
 		return nil
 	}
 
