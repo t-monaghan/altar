@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 
@@ -73,6 +74,16 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 	app.PushOnNextCall = true
 
 	graph := contributionGraphsDrawInstruction(rawCount)
+
+	sum := 0
+
+	for _, count := range rawCount {
+		sum += count
+	}
+
+	t := true
+	app.Data.Text = strconv.Itoa(sum)
+	app.Data.TopText = &t
 
 	firstWeekOfMonth := firstWeekOfMonthDrawInstruction()
 
