@@ -33,10 +33,10 @@ func main() {
 	}
 
 	appList := []utils.Routine{
-		&starWatcher,
 		&weather,
-		&githubChecks,
 		&githubContributions,
+		&githubChecks,
+		&starWatcher,
 	}
 
 	checkRequiredEnvironmentVariables()
