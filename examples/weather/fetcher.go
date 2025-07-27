@@ -45,7 +45,6 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	app.Data.Overlay = ""
 	app.GlobalConfig.Overlay = awtrix.Clear
 
-	// TODO: if there's no rain in the week hide the screen
 	nextRain, foundRain, err := weeklyRainForecast(client)
 	if err != nil {
 		return err
