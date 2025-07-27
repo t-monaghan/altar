@@ -4,11 +4,11 @@ package contributions
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 
@@ -82,7 +82,7 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 	}
 
 	t := true
-	app.Data.Text = fmt.Sprintf("%v", sum)
+	app.Data.Text = strconv.Itoa(sum)
 	app.Data.TopText = &t
 
 	firstWeekOfMonth := firstWeekOfMonthDrawInstruction()
