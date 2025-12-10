@@ -12,6 +12,8 @@ Awtrix devices are thin clients, exposing an API that will let you manipulate th
 
 ### See it in action
 
+You can find the slides for a presentation I gave on this project [here](https://www.linkedin.com/posts/tfmonaghan_i-havent-written-a-blog-post-in-a-while-activity-7358652635748470786-icYP)
+
 You don't need an awtrix device to run this project. To see it in action you can install [devbox](https://www.jetify.com/devbox/) and run `devbox services up --process-compose-file scripts/request-logger-pc.yaml` to see the requests from the example application get captured by a request logger.
 
 > [!WARNING]
