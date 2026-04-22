@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/t-monaghan/altar/compare/v1.1.1...v1.1.2) (2026-04-22)
+
+
+### Bug Fixes
+
+* styles contribution colours ([#80](https://github.com/t-monaghan/altar/issues/80)) ([46d4381](https://github.com/t-monaghan/altar/commit/46d43812184d7beef15de83133e80276accdc2bf))
+
 ## [1.1.1](https://github.com/t-monaghan/altar/compare/v1.1.0...v1.1.1) (2025-07-27)
 
 
