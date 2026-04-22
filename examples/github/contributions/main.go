@@ -82,7 +82,7 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 	}
 
 	t := true
-	app.Data.Text = strconv.Itoa(sum)
+	app.Data.Text = []application.TextWithColour{{Text: strconv.Itoa(sum), Colour: "BBBBBB"}}
 	app.Data.TopText = &t
 
 	firstWeekOfMonth := firstWeekOfMonthDrawInstruction()
@@ -100,7 +100,7 @@ const darkestGreen = 0x1D2F21
 const darkGreen = 0x254727
 const green = 0x307732
 const brightGreen = 0x3AA63C
-const dimWhite = 0x888888
+const brightestGreen = 0x4AE04E
 const red = 0xFF0000
 
 func contributionGraphsDrawInstruction(allContributions []int) application.ImageAndPosition {
@@ -126,7 +126,7 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 		case contributionValue < busiestDay:
 			colour = brightGreen
 		case contributionValue == busiestDay:
-			colour = dimWhite
+			colour = brightestGreen
 		default:
 			colour = red
 
@@ -145,7 +145,7 @@ func contributionGraphsDrawInstruction(allContributions []int) application.Image
 	}
 }
 
-const blue = 0x2A93C2
+const dimGrey = 0x222222
 const hoursInADay = 24
 
 func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
@@ -164,7 +164,7 @@ func firstWeekOfMonthDrawInstruction() application.ImageAndPosition {
 
 		weeksSinceStartOfMonth := daysSince / daysInAWeek
 		if weeksSinceStartOfMonth < widthOfDisplay {
-			drawing[weeksSinceStartOfMonth] = blue
+			drawing[weeksSinceStartOfMonth] = dimGrey
 		}
 	}
 	// contribution grid is in reverse chronological order, we reverse the drawing to match this.
