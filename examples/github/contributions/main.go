@@ -82,6 +82,8 @@ func Fetcher(app *application.Application, _ *http.Client) error {
 	}
 
 	t := true
+	sixty := 60
+	app.Data.Duration = &sixty
 	app.Data.Text = strconv.Itoa(sum)
 	app.Data.TopText = &t
 

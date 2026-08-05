@@ -21,8 +21,8 @@ func Fetcher(app *application.Application, client *http.Client) error {
 	blueIntSlice := []int{82, 96, 255}
 	one := 1
 	app.Data.Repeat = &one
-	four := 4
-	app.Data.Duration = &four
+	twenty := 20
+	app.Data.Duration = &twenty
 	app.Data.Overlay = awtrix.Clear
 	app.GlobalConfig.Overlay = awtrix.Clear
 

@@ -47,8 +47,14 @@ func Fetcher(ntfr *notifier.Notifier, _ *http.Client) error {
 		return nil
 	}
 
+	three := 3
+	seventyFive := 75
+	t := true
 	ntfr.PushOnNextCall = true
 	ntfr.Data.Text = starrer
+	ntfr.Data.Repeat = &three
+	ntfr.Data.Rainbow = &t
+	ntfr.Data.ScrollSpeed = &seventyFive
 
 	return nil
 }

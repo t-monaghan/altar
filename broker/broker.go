@@ -154,7 +154,7 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 
 		var mutateConfigAndSetPollRate sync.Mutex
 
-		for _, app := range brkr.routines {
+		for _, rtn := range brkr.routines {
 			fetchGroup.Add(1)
 
 			go func(app utils.Routine) {
@@ -177,7 +177,7 @@ func fetchAndPushApps(brkr *HTTPBroker) {
 					quickestPoll = app.GetPollRate()
 				}
 				mutateConfigAndSetPollRate.Unlock()
-			}(app)
+			}(rtn)
 		}
 
 		fetchGroup.Wait()

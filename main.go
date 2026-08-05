@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/t-monaghan/altar/application"
 	"github.com/t-monaghan/altar/broker"
@@ -14,16 +15,17 @@ import (
 	"github.com/t-monaghan/altar/examples/github/checks"
 	"github.com/t-monaghan/altar/examples/github/contributions"
 	"github.com/t-monaghan/altar/examples/github/stars"
-	"github.com/t-monaghan/altar/examples/weather"
+	// "github.com/t-monaghan/altar/examples/weather"
 	"github.com/t-monaghan/altar/notifier"
 	"github.com/t-monaghan/altar/utils"
 )
 
 func main() {
 	githubChecks := notifier.NewNotifier("github checks", checks.Fetcher)
-	weather := application.NewApplication("rain forecast", weather.Fetcher)
+	// weather := application.NewApplication("rain forecast", weather.Fetcher)
 	githubContributions := application.NewApplication("github contributions", contributions.Fetcher)
 	starWatcher := notifier.NewNotifier("star watcher", stars.Fetcher)
+	starWatcher.PollRate = time.Second
 
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"/api/pipeline-watcher": checks.Handler,
@@ -33,7 +35,7 @@ func main() {
 	}
 
 	appList := []utils.Routine{
-		&weather,
+		// &weather,
 		&githubContributions,
 		&githubChecks,
 		&starWatcher,
